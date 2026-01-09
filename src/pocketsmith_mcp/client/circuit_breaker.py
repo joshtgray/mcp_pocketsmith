@@ -3,7 +3,7 @@
 import time
 from enum import Enum
 from threading import Lock
-from typing import Optional
+from typing import Any
 
 from pocketsmith_mcp.logger import get_logger
 
@@ -167,7 +167,7 @@ class CircuitBreaker:
             self._last_failure_time = time.monotonic()
             logger.warning("Circuit breaker: Forced to open state")
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         """Get circuit breaker statistics."""
         with self._lock:
             return {

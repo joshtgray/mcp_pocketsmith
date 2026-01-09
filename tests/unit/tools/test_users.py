@@ -1,9 +1,9 @@
 """Unit tests for user MCP tools."""
 
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.tools.users import register_user_tools
@@ -140,7 +140,7 @@ class TestUpdateUser:
             name="New Name",
             time_zone="America/New_York"
         )
-        result_data = json.loads(result)
+        _result_data = json.loads(result)
 
         client.put.assert_called_once_with(
             "/users/123",

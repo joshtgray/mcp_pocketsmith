@@ -1,9 +1,9 @@
 """Unit tests for transaction MCP tools."""
 
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.tools.transactions import register_transaction_tools
@@ -55,7 +55,7 @@ class TestListTransactions:
         client.get.return_value = [sample_transaction]
 
         tool = mcp._tool_manager._tools.get("list_transactions")
-        result = await tool.fn(
+        _result = await tool.fn(
             user_id=123,
             start_date="2024-01-01",
             end_date="2024-01-31"
@@ -147,7 +147,7 @@ class TestCreateTransaction:
             amount=-5.50,
             date="2024-01-15"
         )
-        result_data = json.loads(result)
+        _result_data = json.loads(result)
 
         client.post.assert_called_once_with(
             "/transaction_accounts/789/transactions",

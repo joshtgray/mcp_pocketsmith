@@ -1,7 +1,6 @@
 """Budgeting and analysis MCP tools."""
 
 import json
-from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
@@ -45,10 +44,10 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         user_id: int,
         start_date: str,
         end_date: str,
-        period: Optional[str] = None,
-        interval: Optional[int] = None,
-        categories: Optional[str] = None,
-        scenarios: Optional[str] = None,
+        period: str | None = None,
+        interval: int | None = None,
+        categories: str | None = None,
+        scenarios: str | None = None,
         roll_up: bool = False,
     ) -> str:
         """
@@ -97,10 +96,10 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         user_id: int,
         start_date: str,
         end_date: str,
-        period: Optional[str] = None,
-        interval: Optional[int] = None,
-        categories: Optional[str] = None,
-        scenarios: Optional[str] = None,
+        period: str | None = None,
+        interval: int | None = None,
+        categories: str | None = None,
+        scenarios: str | None = None,
         roll_up: bool = False,
     ) -> str:
         """

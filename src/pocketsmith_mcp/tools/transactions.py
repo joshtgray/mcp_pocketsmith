@@ -1,7 +1,7 @@
 """Transaction management MCP tools."""
 
 import json
-from typing import List, Optional
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -17,14 +17,14 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
     @mcp.tool()
     async def list_transactions(
         user_id: int,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        updated_since: Optional[str] = None,
-        category_id: Optional[int] = None,
-        search: Optional[str] = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        updated_since: str | None = None,
+        category_id: int | None = None,
+        search: str | None = None,
         uncategorised: bool = False,
         needs_review: bool = False,
-        transaction_type: Optional[str] = None,
+        transaction_type: str | None = None,
         page: int = 1,
     ) -> str:
         """
@@ -46,7 +46,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             JSON array of transactions
         """
         try:
-            params = {"page": page}
+            params: dict[str, Any] = {"page": page}
             if start_date:
                 params["start_date"] = start_date
             if end_date:
@@ -95,12 +95,12 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         payee: str,
         amount: float,
         date: str,
-        category_id: Optional[int] = None,
-        note: Optional[str] = None,
-        memo: Optional[str] = None,
-        cheque_number: Optional[str] = None,
+        category_id: int | None = None,
+        note: str | None = None,
+        memo: str | None = None,
+        cheque_number: str | None = None,
         is_transfer: bool = False,
-        labels: Optional[List[str]] = None,
+        labels: list[str] | None = None,
         needs_review: bool = False,
     ) -> str:
         """
@@ -153,16 +153,16 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
     @mcp.tool()
     async def update_transaction(
         transaction_id: int,
-        payee: Optional[str] = None,
-        amount: Optional[float] = None,
-        date: Optional[str] = None,
-        category_id: Optional[int] = None,
-        note: Optional[str] = None,
-        memo: Optional[str] = None,
-        cheque_number: Optional[str] = None,
-        is_transfer: Optional[bool] = None,
-        labels: Optional[List[str]] = None,
-        needs_review: Optional[bool] = None,
+        payee: str | None = None,
+        amount: float | None = None,
+        date: str | None = None,
+        category_id: int | None = None,
+        note: str | None = None,
+        memo: str | None = None,
+        cheque_number: str | None = None,
+        is_transfer: bool | None = None,
+        labels: list[str] | None = None,
+        needs_review: bool | None = None,
     ) -> str:
         """
         Update an existing transaction.
@@ -184,7 +184,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             JSON object with updated transaction
         """
         try:
-            body = {}
+            body: dict[str, Any] = {}
             if payee is not None:
                 body["payee"] = payee
             if amount is not None:

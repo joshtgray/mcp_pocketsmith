@@ -1,9 +1,9 @@
 """Unit tests for institution MCP tools."""
 
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.tools.institutions import register_institution_tools
@@ -110,7 +110,7 @@ class TestUpdateInstitution:
         client.put.return_value = updated
 
         tool = mcp._tool_manager._tools.get("update_institution")
-        result = await tool.fn(institution_id=500, title="Chase Bank USA")
+        _result = await tool.fn(institution_id=500, title="Chase Bank USA")
 
         client.put.assert_called_once_with(
             "/institutions/500",

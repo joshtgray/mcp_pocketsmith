@@ -2,9 +2,8 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class RefundBehaviour(str, Enum):
@@ -20,11 +19,11 @@ class Category(BaseModel):
 
     id: int = Field(..., description="Category ID")
     title: str = Field(..., description="Category name")
-    colour: Optional[str] = Field(None, description="Category color (hex)")
+    colour: str | None = Field(None, description="Category color (hex)")
 
     # Hierarchy
-    parent_id: Optional[int] = Field(None, description="Parent category ID")
-    children: List["Category"] = Field(default_factory=list, description="Child categories")
+    parent_id: int | None = Field(None, description="Parent category ID")
+    children: list["Category"] = Field(default_factory=list, description="Child categories")
 
     # Settings
     is_transfer: bool = Field(False, description="Is this a transfer category")
@@ -35,13 +34,10 @@ class Category(BaseModel):
     )
 
     # Timestamps
-    created_at: Optional[datetime] = Field(None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
+    created_at: datetime | None = Field(None, description="Creation timestamp")
+    updated_at: datetime | None = Field(None, description="Last update timestamp")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 # Enable forward references for nested Category
@@ -52,8 +48,8 @@ class CategoryCreate(BaseModel):
     """Fields for creating a category."""
 
     title: str = Field(..., description="Category name")
-    colour: Optional[str] = Field(None, description="Category color (hex)")
-    parent_id: Optional[int] = Field(None, description="Parent category ID")
+    colour: str | None = Field(None, description="Category color (hex)")
+    parent_id: int | None = Field(None, description="Parent category ID")
     is_transfer: bool = Field(False, description="Is this a transfer category")
     is_bill: bool = Field(False, description="Is this a bill category")
     roll_up: bool = Field(False, description="Roll up to parent in reports")
@@ -65,13 +61,13 @@ class CategoryCreate(BaseModel):
 class CategoryUpdate(BaseModel):
     """Fields for updating a category."""
 
-    title: Optional[str] = Field(None, description="Category name")
-    colour: Optional[str] = Field(None, description="Category color (hex)")
-    parent_id: Optional[int] = Field(None, description="Parent category ID")
-    is_transfer: Optional[bool] = Field(None, description="Is this a transfer category")
-    is_bill: Optional[bool] = Field(None, description="Is this a bill category")
-    roll_up: Optional[bool] = Field(None, description="Roll up to parent in reports")
-    refund_behaviour: Optional[RefundBehaviour] = Field(
+    title: str | None = Field(None, description="Category name")
+    colour: str | None = Field(None, description="Category color (hex)")
+    parent_id: int | None = Field(None, description="Parent category ID")
+    is_transfer: bool | None = Field(None, description="Is this a transfer category")
+    is_bill: bool | None = Field(None, description="Is this a bill category")
+    roll_up: bool | None = Field(None, description="Roll up to parent in reports")
+    refund_behaviour: RefundBehaviour | None = Field(
         None, description="How refunds are handled"
     )
 
@@ -81,14 +77,11 @@ class CategoryRule(BaseModel):
 
     id: int = Field(..., description="Rule ID")
     category_id: int = Field(..., description="Category to apply")
-    payee_matches: Optional[str] = Field(None, description="Payee pattern to match")
-    created_at: Optional[datetime] = Field(None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
+    payee_matches: str | None = Field(None, description="Payee pattern to match")
+    created_at: datetime | None = Field(None, description="Creation timestamp")
+    updated_at: datetime | None = Field(None, description="Last update timestamp")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class CategoryRuleCreate(BaseModel):

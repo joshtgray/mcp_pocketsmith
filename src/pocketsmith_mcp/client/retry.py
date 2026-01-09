@@ -2,7 +2,8 @@
 
 import asyncio
 import random
-from typing import Awaitable, Callable, Optional, Tuple, Type, TypeVar
+from collections.abc import Awaitable, Callable
+from typing import TypeVar
 
 from pocketsmith_mcp.logger import get_logger
 
@@ -16,8 +17,8 @@ async def retry_with_backoff(
     base_delay: float = 1.0,
     max_delay: float = 30.0,
     jitter_factor: float = 0.2,
-    retryable_errors: Tuple[Type[Exception], ...] = (Exception,),
-    on_retry: Optional[Callable[[Exception, int], None]] = None,
+    retryable_errors: tuple[type[Exception], ...] = (Exception,),
+    on_retry: Callable[[Exception, int], None] | None = None,
 ) -> T:
     """
     Retry an async function with exponential backoff and jitter.
@@ -99,5 +100,7 @@ def calculate_delay(
         Calculated delay in seconds
     """
     delay = min(base_delay * (2 ** (attempt - 1)), max_delay)
-    jitter = delay * jitter_factor * random.random()
-    return delay + jitter
+    rand_val: float = random.random()
+    jitter = delay * jitter_factor * rand_val
+    total_delay: float = delay + jitter
+    return total_delay

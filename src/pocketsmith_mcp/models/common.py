@@ -1,7 +1,7 @@
 """Common Pydantic models shared across entities."""
 
 from datetime import datetime
-from typing import Generic, List, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from pydantic import BaseModel, Field
 
@@ -17,18 +17,18 @@ class ErrorResponse(BaseModel):
 class PaginatedResponse(BaseModel, Generic[T]):
     """Paginated API response wrapper."""
 
-    data: List[T] = Field(default_factory=list, description="List of items")
-    total: Optional[int] = Field(None, description="Total number of items")
-    page: Optional[int] = Field(None, description="Current page number")
-    per_page: Optional[int] = Field(None, description="Items per page")
-    total_pages: Optional[int] = Field(None, description="Total number of pages")
+    data: list[T] = Field(default_factory=list, description="List of items")
+    total: int | None = Field(None, description="Total number of items")
+    page: int | None = Field(None, description="Current page number")
+    per_page: int | None = Field(None, description="Items per page")
+    total_pages: int | None = Field(None, description="Total number of pages")
 
 
 class TimestampMixin(BaseModel):
     """Mixin for models with timestamp fields."""
 
-    created_at: Optional[datetime] = Field(None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
+    created_at: datetime | None = Field(None, description="Creation timestamp")
+    updated_at: datetime | None = Field(None, description="Last update timestamp")
 
 
 class Currency(BaseModel):
@@ -61,5 +61,5 @@ class SavedSearch(BaseModel):
 
     id: int = Field(..., description="Saved search ID")
     title: str = Field(..., description="Search title")
-    created_at: Optional[datetime] = Field(None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
+    created_at: datetime | None = Field(None, description="Creation timestamp")
+    updated_at: datetime | None = Field(None, description="Last update timestamp")

@@ -1,7 +1,7 @@
 """Category management MCP tools."""
 
 import json
-from typing import Optional
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -59,12 +59,12 @@ def register_category_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
     async def create_category(
         user_id: int,
         title: str,
-        colour: Optional[str] = None,
-        parent_id: Optional[int] = None,
+        colour: str | None = None,
+        parent_id: int | None = None,
         is_transfer: bool = False,
         is_bill: bool = False,
         roll_up: bool = False,
-        refund_behaviour: Optional[str] = None,
+        refund_behaviour: str | None = None,
     ) -> str:
         """
         Create a new category.
@@ -84,7 +84,7 @@ def register_category_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             JSON object with created category
         """
         try:
-            body = {
+            body: dict[str, Any] = {
                 "title": title,
                 "is_transfer": is_transfer,
                 "is_bill": is_bill,
@@ -106,13 +106,13 @@ def register_category_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
     @mcp.tool()
     async def update_category(
         category_id: int,
-        title: Optional[str] = None,
-        colour: Optional[str] = None,
-        parent_id: Optional[int] = None,
-        is_transfer: Optional[bool] = None,
-        is_bill: Optional[bool] = None,
-        roll_up: Optional[bool] = None,
-        refund_behaviour: Optional[str] = None,
+        title: str | None = None,
+        colour: str | None = None,
+        parent_id: int | None = None,
+        is_transfer: bool | None = None,
+        is_bill: bool | None = None,
+        roll_up: bool | None = None,
+        refund_behaviour: str | None = None,
     ) -> str:
         """
         Update a category.
@@ -131,7 +131,7 @@ def register_category_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             JSON object with updated category
         """
         try:
-            body = {}
+            body: dict[str, Any] = {}
             if title is not None:
                 body["title"] = title
             if colour is not None:

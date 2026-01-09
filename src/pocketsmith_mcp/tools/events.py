@@ -1,7 +1,7 @@
 """Event management MCP tools."""
 
 import json
-from typing import Optional
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -17,8 +17,8 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
     @mcp.tool()
     async def list_events(
         user_id: int,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
     ) -> str:
         """
         List budget/calendar events for a user.
@@ -35,7 +35,7 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             JSON array of events
         """
         try:
-            params = {}
+            params: dict[str, Any] = {}
             if start_date:
                 params["start_date"] = start_date
             if end_date:
@@ -74,8 +74,8 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         date: str,
         repeat_type: str = "once",
         repeat_interval: int = 1,
-        note: Optional[str] = None,
-        colour: Optional[str] = None,
+        note: str | None = None,
+        colour: str | None = None,
     ) -> str:
         """
         Create a new budget event.
@@ -98,7 +98,7 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             JSON object with created event
         """
         try:
-            body = {
+            body: dict[str, Any] = {
                 "category_id": category_id,
                 "amount": amount,
                 "date": date,
@@ -119,13 +119,13 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
     @mcp.tool()
     async def update_event(
         event_id: int,
-        category_id: Optional[int] = None,
-        amount: Optional[float] = None,
-        date: Optional[str] = None,
-        repeat_type: Optional[str] = None,
-        repeat_interval: Optional[int] = None,
-        note: Optional[str] = None,
-        colour: Optional[str] = None,
+        category_id: int | None = None,
+        amount: float | None = None,
+        date: str | None = None,
+        repeat_type: str | None = None,
+        repeat_interval: int | None = None,
+        note: str | None = None,
+        colour: str | None = None,
     ) -> str:
         """
         Update an event.
@@ -144,7 +144,7 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             JSON object with updated event
         """
         try:
-            body = {}
+            body: dict[str, Any] = {}
             if category_id is not None:
                 body["category_id"] = category_id
             if amount is not None:

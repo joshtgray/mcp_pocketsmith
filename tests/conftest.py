@@ -1,8 +1,9 @@
 """Pytest configuration and fixtures."""
 
 import os
-from typing import Any, Dict, Generator
-from unittest.mock import AsyncMock, MagicMock, patch
+from collections.abc import Generator
+from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -27,7 +28,7 @@ def mock_httpx_client() -> Generator[AsyncMock, None, None]:
 
 
 @pytest.fixture
-def sample_user() -> Dict[str, Any]:
+def sample_user() -> dict[str, Any]:
     """Provide a sample user response."""
     return {
         "id": 1,
@@ -50,7 +51,7 @@ def sample_user() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_account() -> Dict[str, Any]:
+def sample_account() -> dict[str, Any]:
     """Provide a sample account response."""
     return {
         "id": 1,
@@ -70,7 +71,7 @@ def sample_account() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_transaction() -> Dict[str, Any]:
+def sample_transaction() -> dict[str, Any]:
     """Provide a sample transaction response."""
     return {
         "id": 1001,
@@ -100,7 +101,7 @@ def sample_transaction() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_category() -> Dict[str, Any]:
+def sample_category() -> dict[str, Any]:
     """Provide a sample category response."""
     return {
         "id": 10,
@@ -118,7 +119,7 @@ def sample_category() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_institution() -> Dict[str, Any]:
+def sample_institution() -> dict[str, Any]:
     """Provide a sample institution response."""
     return {
         "id": 1,
@@ -130,7 +131,7 @@ def sample_institution() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_budget_summary() -> Dict[str, Any]:
+def sample_budget_summary() -> dict[str, Any]:
     """Provide a sample budget summary response."""
     return {
         "start_date": "2024-01-01",
@@ -145,7 +146,7 @@ def sample_budget_summary() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_event() -> Dict[str, Any]:
+def sample_event() -> dict[str, Any]:
     """Provide a sample event response."""
     return {
         "id": 100,
@@ -163,7 +164,7 @@ def sample_event() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_attachment() -> Dict[str, Any]:
+def sample_attachment() -> dict[str, Any]:
     """Provide a sample attachment response."""
     return {
         "id": 50,

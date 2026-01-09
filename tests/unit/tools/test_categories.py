@@ -1,9 +1,9 @@
 """Unit tests for category MCP tools."""
 
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.tools.categories import register_category_tools
@@ -125,7 +125,7 @@ class TestUpdateCategory:
 
         tool = mcp._tool_manager._tools.get("update_category")
         result = await tool.fn(category_id=100, title="New Category Name")
-        result_data = json.loads(result)
+        _result_data = json.loads(result)
 
         client.put.assert_called_once_with(
             "/categories/100",

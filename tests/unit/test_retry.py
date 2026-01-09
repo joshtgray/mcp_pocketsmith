@@ -1,6 +1,5 @@
 """Unit tests for retry logic."""
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest

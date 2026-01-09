@@ -1,7 +1,7 @@
 """Transaction account management MCP tools."""
 
 import json
-from typing import Optional
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -31,15 +31,18 @@ def register_transaction_account_tools(mcp: FastMCP, client: PocketSmithClient) 
         """
         try:
             # Get all accounts and extract transaction accounts
-            accounts = await client.get(f"/users/{user_id}/accounts")
-            transaction_accounts = []
+            accounts_result = await client.get(f"/users/{user_id}/accounts")
+            transaction_accounts: list[dict[str, Any]] = []
 
-            for account in accounts:
-                if "transaction_accounts" in account:
-                    for ta in account["transaction_accounts"]:
-                        ta["parent_account_id"] = account.get("id")
-                        ta["parent_account_title"] = account.get("title")
-                        transaction_accounts.append(ta)
+            # accounts_result is a list of account dictionaries
+            if isinstance(accounts_result, list):
+                for account in accounts_result:
+                    if isinstance(account, dict) and "transaction_accounts" in account:
+                        for ta in account["transaction_accounts"]:
+                            if isinstance(ta, dict):
+                                ta["parent_account_id"] = account.get("id")
+                                ta["parent_account_title"] = account.get("title")
+                                transaction_accounts.append(ta)
 
             return json.dumps(transaction_accounts, indent=2)
         except Exception as e:
@@ -68,11 +71,11 @@ def register_transaction_account_tools(mcp: FastMCP, client: PocketSmithClient) 
     @mcp.tool()
     async def update_transaction_account(
         transaction_account_id: int,
-        name: Optional[str] = None,
-        number: Optional[str] = None,
-        starting_balance: Optional[float] = None,
-        starting_balance_date: Optional[str] = None,
-        is_net_worth: Optional[bool] = None,
+        name: str | None = None,
+        number: str | None = None,
+        starting_balance: float | None = None,
+        starting_balance_date: str | None = None,
+        is_net_worth: bool | None = None,
     ) -> str:
         """
         Update a transaction account's settings.
@@ -89,7 +92,7 @@ def register_transaction_account_tools(mcp: FastMCP, client: PocketSmithClient) 
             JSON object with updated transaction account details
         """
         try:
-            body = {}
+            body: dict[str, Any] = {}
             if name is not None:
                 body["name"] = name
             if number is not None:

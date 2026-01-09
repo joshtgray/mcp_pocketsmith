@@ -1,9 +1,9 @@
 """Unit tests for event MCP tools."""
 
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.tools.events import register_event_tools
@@ -104,7 +104,7 @@ class TestCreateEvent:
         client.post.return_value = sample_event
 
         tool = mcp._tool_manager._tools.get("create_event")
-        result = await tool.fn(
+        _result = await tool.fn(
             scenario_id=200,
             category_id=100,
             amount=-50.00,

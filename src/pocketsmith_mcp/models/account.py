@@ -2,9 +2,9 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AccountType(str, Enum):
@@ -28,42 +28,39 @@ class TransactionAccount(BaseModel):
 
     id: int = Field(..., description="Transaction account ID")
     name: str = Field(..., description="Account name")
-    number: Optional[str] = Field(None, description="Account number")
+    number: str | None = Field(None, description="Account number")
 
     # Balance information
     current_balance: float = Field(0.0, description="Current balance")
-    current_balance_date: Optional[str] = Field(None, description="Balance date")
+    current_balance_date: str | None = Field(None, description="Balance date")
     current_balance_in_base_currency: float = Field(
         0.0, description="Current balance in base currency"
     )
-    current_balance_exchange_rate: Optional[float] = Field(
+    current_balance_exchange_rate: float | None = Field(
         None, description="Exchange rate used"
     )
-    safe_balance: Optional[float] = Field(None, description="Safe balance")
-    safe_balance_in_base_currency: Optional[float] = Field(
+    safe_balance: float | None = Field(None, description="Safe balance")
+    safe_balance_in_base_currency: float | None = Field(
         None, description="Safe balance in base currency"
     )
 
     # Starting balance
-    starting_balance: Optional[float] = Field(None, description="Starting balance")
-    starting_balance_date: Optional[str] = Field(None, description="Starting balance date")
+    starting_balance: float | None = Field(None, description="Starting balance")
+    starting_balance_date: str | None = Field(None, description="Starting balance date")
 
     # Metadata
     currency_code: str = Field(..., description="Currency code")
-    type: Optional[AccountType] = Field(None, description="Account type")
+    type: AccountType | None = Field(None, description="Account type")
     is_net_worth: bool = Field(True, description="Include in net worth")
 
     # Related entities
-    institution: Optional[Dict[str, Any]] = Field(None, description="Associated institution")
+    institution: dict[str, Any] | None = Field(None, description="Associated institution")
 
     # Timestamps
-    created_at: Optional[datetime] = Field(None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
+    created_at: datetime | None = Field(None, description="Creation timestamp")
+    updated_at: datetime | None = Field(None, description="Last update timestamp")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class Scenario(BaseModel):
@@ -71,65 +68,62 @@ class Scenario(BaseModel):
 
     id: int = Field(..., description="Scenario ID")
     title: str = Field(..., description="Scenario title")
-    description: Optional[str] = Field(None, description="Scenario description")
+    description: str | None = Field(None, description="Scenario description")
 
     # Interest settings
-    interest_rate: Optional[float] = Field(None, description="Interest rate")
-    interest_rate_repeat_id: Optional[int] = Field(None, description="Interest repeat ID")
-    type: Optional[str] = Field(None, description="Scenario type")
+    interest_rate: float | None = Field(None, description="Interest rate")
+    interest_rate_repeat_id: int | None = Field(None, description="Interest repeat ID")
+    type: str | None = Field(None, description="Scenario type")
 
     # Value constraints
-    minimum_value: Optional[float] = Field(None, description="Minimum value")
-    maximum_value: Optional[float] = Field(None, description="Maximum value")
-    achieve_date: Optional[str] = Field(None, description="Target achieve date")
+    minimum_value: float | None = Field(None, description="Minimum value")
+    maximum_value: float | None = Field(None, description="Maximum value")
+    achieve_date: str | None = Field(None, description="Target achieve date")
 
     # Balance information
-    starting_balance: Optional[float] = Field(None, description="Starting balance")
-    starting_balance_date: Optional[str] = Field(None, description="Starting balance date")
-    closing_balance: Optional[float] = Field(None, description="Closing balance")
-    closing_balance_date: Optional[str] = Field(None, description="Closing balance date")
-    current_balance: Optional[float] = Field(None, description="Current balance")
-    current_balance_date: Optional[str] = Field(None, description="Current balance date")
-    current_balance_in_base_currency: Optional[float] = Field(
+    starting_balance: float | None = Field(None, description="Starting balance")
+    starting_balance_date: str | None = Field(None, description="Starting balance date")
+    closing_balance: float | None = Field(None, description="Closing balance")
+    closing_balance_date: str | None = Field(None, description="Closing balance date")
+    current_balance: float | None = Field(None, description="Current balance")
+    current_balance_date: str | None = Field(None, description="Current balance date")
+    current_balance_in_base_currency: float | None = Field(
         None, description="Current balance in base currency"
     )
-    current_balance_exchange_rate: Optional[float] = Field(
+    current_balance_exchange_rate: float | None = Field(
         None, description="Exchange rate"
     )
-    safe_balance: Optional[float] = Field(None, description="Safe balance")
-    safe_balance_in_base_currency: Optional[float] = Field(
+    safe_balance: float | None = Field(None, description="Safe balance")
+    safe_balance_in_base_currency: float | None = Field(
         None, description="Safe balance in base currency"
     )
 
     # Timestamps
-    created_at: Optional[datetime] = Field(None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
+    created_at: datetime | None = Field(None, description="Creation timestamp")
+    updated_at: datetime | None = Field(None, description="Last update timestamp")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class Account(BaseModel):
     """A PocketSmith account (container for transaction accounts)."""
 
     id: int = Field(..., description="Account ID")
-    title: Optional[str] = Field(None, description="Account title")
+    title: str | None = Field(None, description="Account title")
     currency_code: str = Field(..., description="Currency code")
-    type: Optional[AccountType] = Field(None, description="Account type")
+    type: AccountType | None = Field(None, description="Account type")
 
     # Balance information
     current_balance: float = Field(0.0, description="Current balance")
-    current_balance_date: Optional[str] = Field(None, description="Balance date")
+    current_balance_date: str | None = Field(None, description="Balance date")
     current_balance_in_base_currency: float = Field(
         0.0, description="Current balance in base currency"
     )
-    current_balance_exchange_rate: Optional[float] = Field(
+    current_balance_exchange_rate: float | None = Field(
         None, description="Exchange rate used"
     )
-    safe_balance: Optional[float] = Field(None, description="Safe balance")
-    safe_balance_in_base_currency: Optional[float] = Field(
+    safe_balance: float | None = Field(None, description="Safe balance")
+    safe_balance_in_base_currency: float | None = Field(
         None, description="Safe balance in base currency"
     )
 
@@ -137,24 +131,21 @@ class Account(BaseModel):
     is_net_worth: bool = Field(True, description="Include in net worth")
 
     # Related entities
-    primary_transaction_account: Optional[TransactionAccount] = Field(
+    primary_transaction_account: TransactionAccount | None = Field(
         None, description="Primary transaction account"
     )
-    primary_scenario: Optional[Scenario] = Field(None, description="Primary scenario")
-    transaction_accounts: List[TransactionAccount] = Field(
+    primary_scenario: Scenario | None = Field(None, description="Primary scenario")
+    transaction_accounts: list[TransactionAccount] = Field(
         default_factory=list, description="Transaction accounts"
     )
-    scenarios: List[Scenario] = Field(default_factory=list, description="Scenarios")
-    institution: Optional[Dict[str, Any]] = Field(None, description="Associated institution")
+    scenarios: list[Scenario] = Field(default_factory=list, description="Scenarios")
+    institution: dict[str, Any] | None = Field(None, description="Associated institution")
 
     # Timestamps
-    created_at: Optional[datetime] = Field(None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
+    created_at: datetime | None = Field(None, description="Creation timestamp")
+    updated_at: datetime | None = Field(None, description="Last update timestamp")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class AccountCreate(BaseModel):
@@ -163,24 +154,24 @@ class AccountCreate(BaseModel):
     title: str = Field(..., description="Account title")
     currency_code: str = Field(..., description="Currency code")
     type: AccountType = Field(..., description="Account type")
-    institution_id: Optional[int] = Field(None, description="Institution ID")
+    institution_id: int | None = Field(None, description="Institution ID")
     is_net_worth: bool = Field(True, description="Include in net worth")
 
 
 class AccountUpdate(BaseModel):
     """Fields for updating an account."""
 
-    title: Optional[str] = Field(None, description="Account title")
-    currency_code: Optional[str] = Field(None, description="Currency code")
-    type: Optional[AccountType] = Field(None, description="Account type")
-    is_net_worth: Optional[bool] = Field(None, description="Include in net worth")
+    title: str | None = Field(None, description="Account title")
+    currency_code: str | None = Field(None, description="Currency code")
+    type: AccountType | None = Field(None, description="Account type")
+    is_net_worth: bool | None = Field(None, description="Include in net worth")
 
 
 class TransactionAccountUpdate(BaseModel):
     """Fields for updating a transaction account."""
 
-    name: Optional[str] = Field(None, description="Account name")
-    number: Optional[str] = Field(None, description="Account number")
-    starting_balance: Optional[float] = Field(None, description="Starting balance")
-    starting_balance_date: Optional[str] = Field(None, description="Starting balance date")
-    is_net_worth: Optional[bool] = Field(None, description="Include in net worth")
+    name: str | None = Field(None, description="Account name")
+    number: str | None = Field(None, description="Account number")
+    starting_balance: float | None = Field(None, description="Starting balance")
+    starting_balance_date: str | None = Field(None, description="Starting balance date")
+    is_net_worth: bool | None = Field(None, description="Include in net worth")

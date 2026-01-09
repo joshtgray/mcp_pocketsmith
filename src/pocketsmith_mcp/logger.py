@@ -6,12 +6,11 @@ All logging goes to stderr to avoid interfering with the MCP protocol on stdout.
 import logging
 import os
 import sys
-from typing import Optional
 
 
 def setup_logger(
     name: str = "pocketsmith_mcp",
-    level: Optional[str] = None,
+    level: str | None = None,
 ) -> logging.Logger:
     """
     Set up a logger that writes to stderr.

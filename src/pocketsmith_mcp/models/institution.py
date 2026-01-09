@@ -1,9 +1,8 @@
 """Institution model for PocketSmith API."""
 
 from datetime import datetime
-from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Institution(BaseModel):
@@ -12,13 +11,10 @@ class Institution(BaseModel):
     id: int = Field(..., description="Institution ID")
     title: str = Field(..., description="Institution name")
     currency_code: str = Field(..., description="Default currency code")
-    created_at: Optional[datetime] = Field(None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
+    created_at: datetime | None = Field(None, description="Creation timestamp")
+    updated_at: datetime | None = Field(None, description="Last update timestamp")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class InstitutionCreate(BaseModel):
@@ -31,5 +27,5 @@ class InstitutionCreate(BaseModel):
 class InstitutionUpdate(BaseModel):
     """Fields for updating an institution."""
 
-    title: Optional[str] = Field(None, description="Institution name")
-    currency_code: Optional[str] = Field(None, description="Default currency code")
+    title: str | None = Field(None, description="Institution name")
+    currency_code: str | None = Field(None, description="Default currency code")

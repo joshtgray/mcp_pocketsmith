@@ -1,8 +1,8 @@
 """Integration tests for the MCP server lifecycle."""
 
-import os
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 from pocketsmith_mcp.server import create_server, get_server
 

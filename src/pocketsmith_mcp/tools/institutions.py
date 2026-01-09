@@ -1,7 +1,6 @@
 """Institution management MCP tools."""
 
 import json
-from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
@@ -88,8 +87,8 @@ def register_institution_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
     @mcp.tool()
     async def update_institution(
         institution_id: int,
-        title: Optional[str] = None,
-        currency_code: Optional[str] = None,
+        title: str | None = None,
+        currency_code: str | None = None,
     ) -> str:
         """
         Update an institution.

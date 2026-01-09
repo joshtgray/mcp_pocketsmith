@@ -1,7 +1,7 @@
 """Account management MCP tools."""
 
 import json
-from typing import Optional
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -57,10 +57,10 @@ def register_account_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
     @mcp.tool()
     async def update_account(
         account_id: int,
-        title: Optional[str] = None,
-        currency_code: Optional[str] = None,
-        type: Optional[str] = None,
-        is_net_worth: Optional[bool] = None,
+        title: str | None = None,
+        currency_code: str | None = None,
+        type: str | None = None,
+        is_net_worth: bool | None = None,
     ) -> str:
         """
         Update an account's settings.
@@ -77,7 +77,7 @@ def register_account_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             JSON object with updated account details
         """
         try:
-            body = {}
+            body: dict[str, Any] = {}
             if title is not None:
                 body["title"] = title
             if currency_code is not None:

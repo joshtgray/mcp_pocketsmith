@@ -2,11 +2,10 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import httpx
 import pytest
 
 from pocketsmith_mcp.client.api_client import PocketSmithClient
-from pocketsmith_mcp.errors import APIError, AuthError, CircuitBreakerOpenError, RateLimitError
+from pocketsmith_mcp.errors import APIError, AuthError, RateLimitError
 
 
 class TestPocketSmithClient:

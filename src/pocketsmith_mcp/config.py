@@ -2,7 +2,6 @@
 
 import os
 from dataclasses import dataclass
-from typing import Optional
 
 from dotenv import load_dotenv
 
@@ -26,7 +25,7 @@ class Config:
     base_url: str = "https://api.pocketsmith.com/v2"
 
     @classmethod
-    def from_env(cls, env_file: Optional[str] = None) -> "Config":
+    def from_env(cls, env_file: str | None = None) -> "Config":
         """
         Load configuration from environment variables.
 
@@ -85,7 +84,7 @@ class Config:
 
 
 # Global config instance (lazy loaded)
-_config: Optional[Config] = None
+_config: Config | None = None
 
 
 def get_config() -> Config:

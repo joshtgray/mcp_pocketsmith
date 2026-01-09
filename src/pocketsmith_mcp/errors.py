@@ -1,12 +1,11 @@
 """Custom exceptions for PocketSmith MCP Server."""
 
-from typing import Optional
 
 
 class PocketSmithError(Exception):
     """Base exception for all PocketSmith MCP errors."""
 
-    def __init__(self, message: str, details: Optional[str] = None):
+    def __init__(self, message: str, details: str | None = None):
         self.message = message
         self.details = details
         super().__init__(self.message)
@@ -24,7 +23,7 @@ class APIError(PocketSmithError):
         self,
         message: str,
         status_code: int = 0,
-        response_body: Optional[str] = None,
+        response_body: str | None = None,
     ):
         self.status_code = status_code
         self.response_body = response_body
@@ -50,7 +49,7 @@ class RateLimitError(PocketSmithError):
     def __init__(
         self,
         message: str = "Rate limit exceeded",
-        retry_after: Optional[int] = None,
+        retry_after: int | None = None,
     ):
         self.retry_after = retry_after
         details = f"Retry after {retry_after}s" if retry_after else None
@@ -60,7 +59,7 @@ class RateLimitError(PocketSmithError):
 class ValidationError(PocketSmithError):
     """Exception raised for input validation errors."""
 
-    def __init__(self, message: str, field: Optional[str] = None):
+    def __init__(self, message: str, field: str | None = None):
         self.field = field
         details = f"Field: {field}" if field else None
         super().__init__(message, details)
@@ -82,7 +81,7 @@ class CircuitBreakerOpenError(PocketSmithError):
 class TimeoutError(PocketSmithError):
     """Exception raised when an operation times out."""
 
-    def __init__(self, message: str = "Operation timed out", timeout_seconds: Optional[float] = None):
+    def __init__(self, message: str = "Operation timed out", timeout_seconds: float | None = None):
         self.timeout_seconds = timeout_seconds
         details = f"Timeout: {timeout_seconds}s" if timeout_seconds else None
         super().__init__(message, details)

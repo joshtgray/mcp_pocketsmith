@@ -1,7 +1,6 @@
 """Attachment management MCP tools."""
 
 import json
-from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
@@ -98,7 +97,7 @@ def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
     @mcp.tool()
     async def update_attachment(
         attachment_id: int,
-        title: Optional[str] = None,
+        title: str | None = None,
     ) -> str:
         """
         Update an attachment's metadata.

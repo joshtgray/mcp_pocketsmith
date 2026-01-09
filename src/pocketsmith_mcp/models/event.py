@@ -2,9 +2,9 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class RepeatType(str, Enum):
@@ -27,7 +27,7 @@ class Event(BaseModel):
 
     # Amount information
     amount: float = Field(..., description="Event amount")
-    amount_in_base_currency: Optional[float] = Field(
+    amount_in_base_currency: float | None = Field(
         None, description="Amount in base currency"
     )
     currency_code: str = Field(..., description="Currency code")
@@ -38,26 +38,23 @@ class Event(BaseModel):
     repeat_interval: int = Field(1, description="Repeat interval")
 
     # Series information
-    series_id: Optional[int] = Field(None, description="Series ID for recurring events")
-    series_start_id: Optional[int] = Field(None, description="First event in series")
+    series_id: int | None = Field(None, description="Series ID for recurring events")
+    series_start_id: int | None = Field(None, description="First event in series")
     infinite_series: bool = Field(False, description="Is this an infinite series")
 
     # Details
-    note: Optional[str] = Field(None, description="Event note")
-    colour: Optional[str] = Field(None, description="Event color (hex)")
+    note: str | None = Field(None, description="Event note")
+    colour: str | None = Field(None, description="Event color (hex)")
 
     # Related entities
-    category: Optional[Dict[str, Any]] = Field(None, description="Event category")
-    scenario: Optional[Dict[str, Any]] = Field(None, description="Associated scenario")
+    category: dict[str, Any] | None = Field(None, description="Event category")
+    scenario: dict[str, Any] | None = Field(None, description="Associated scenario")
 
     # Timestamps
-    created_at: Optional[datetime] = Field(None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
+    created_at: datetime | None = Field(None, description="Creation timestamp")
+    updated_at: datetime | None = Field(None, description="Last update timestamp")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class EventCreate(BaseModel):
@@ -68,17 +65,17 @@ class EventCreate(BaseModel):
     date: str = Field(..., description="Event date (YYYY-MM-DD)")
     repeat_type: RepeatType = Field(RepeatType.ONCE, description="Repeat frequency")
     repeat_interval: int = Field(1, description="Repeat interval")
-    note: Optional[str] = Field(None, description="Event note")
-    colour: Optional[str] = Field(None, description="Event color (hex)")
+    note: str | None = Field(None, description="Event note")
+    colour: str | None = Field(None, description="Event color (hex)")
 
 
 class EventUpdate(BaseModel):
     """Fields for updating an event."""
 
-    category_id: Optional[int] = Field(None, description="Category ID")
-    amount: Optional[float] = Field(None, description="Event amount")
-    date: Optional[str] = Field(None, description="Event date (YYYY-MM-DD)")
-    repeat_type: Optional[RepeatType] = Field(None, description="Repeat frequency")
-    repeat_interval: Optional[int] = Field(None, description="Repeat interval")
-    note: Optional[str] = Field(None, description="Event note")
-    colour: Optional[str] = Field(None, description="Event color (hex)")
+    category_id: int | None = Field(None, description="Category ID")
+    amount: float | None = Field(None, description="Event amount")
+    date: str | None = Field(None, description="Event date (YYYY-MM-DD)")
+    repeat_type: RepeatType | None = Field(None, description="Repeat frequency")
+    repeat_interval: int | None = Field(None, description="Repeat interval")
+    note: str | None = Field(None, description="Event note")
+    colour: str | None = Field(None, description="Event color (hex)")

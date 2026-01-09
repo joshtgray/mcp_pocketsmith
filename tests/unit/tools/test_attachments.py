@@ -1,9 +1,9 @@
 """Unit tests for attachment MCP tools."""
 
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.tools.attachments import register_attachment_tools
@@ -98,7 +98,7 @@ class TestCreateAttachment:
         client.post.return_value = sample_attachment
 
         tool = mcp._tool_manager._tools.get("create_attachment")
-        result = await tool.fn(
+        _result = await tool.fn(
             user_id=123,
             title="Receipt",
             file_name="receipt.pdf",

@@ -1,7 +1,7 @@
 """User management MCP tools."""
 
 import json
-from typing import Optional
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -54,12 +54,12 @@ def register_user_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
     @mcp.tool()
     async def update_user(
         user_id: int,
-        name: Optional[str] = None,
-        email: Optional[str] = None,
-        time_zone: Optional[str] = None,
-        week_start_day: Optional[int] = None,
-        base_currency_code: Optional[str] = None,
-        always_show_base_currency: Optional[bool] = None,
+        name: str | None = None,
+        email: str | None = None,
+        time_zone: str | None = None,
+        week_start_day: int | None = None,
+        base_currency_code: str | None = None,
+        always_show_base_currency: bool | None = None,
     ) -> str:
         """
         Update a user's settings.
@@ -77,7 +77,7 @@ def register_user_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             JSON object with updated user details
         """
         try:
-            body = {}
+            body: dict[str, Any] = {}
             if name is not None:
                 body["name"] = name
             if email is not None:

@@ -1,7 +1,6 @@
 """Async HTTP client for PocketSmith API with retry, rate limiting, circuit breaker."""
 
-import json
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -30,7 +29,7 @@ class PocketSmithClient:
     def __init__(
         self,
         api_key: str,
-        base_url: Optional[str] = None,
+        base_url: str | None = None,
         timeout: float = 30.0,
         max_retries: int = 3,
         rate_limit_per_minute: int = 60,
@@ -77,9 +76,9 @@ class PocketSmithClient:
         self,
         method: str,
         path: str,
-        params: Optional[Dict[str, Any]] = None,
-        json_data: Optional[Dict[str, Any]] = None,
-    ) -> Union[Dict[str, Any], List[Any]]:
+        params: dict[str, Any] | None = None,
+        json_data: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | list[Any]:
         """
         Make an authenticated API request with retry, rate limiting, and circuit breaker.
 
@@ -105,7 +104,7 @@ class PocketSmithClient:
         # Rate limiting
         await self._rate_limiter.acquire()
 
-        async def execute_request() -> Union[Dict[str, Any], List[Any]]:
+        async def execute_request() -> dict[str, Any] | list[Any]:
             # Clean up params - remove None values
             clean_params = None
             if params:
@@ -162,7 +161,8 @@ class PocketSmithClient:
             if response.status_code == 204:
                 return {}
 
-            return response.json()
+            result: dict[str, Any] | list[Any] = response.json()
+            return result
 
         # Retry with backoff for retryable errors
         return await retry_with_backoff(
@@ -176,8 +176,8 @@ class PocketSmithClient:
     async def get(
         self,
         path: str,
-        params: Optional[Dict[str, Any]] = None,
-    ) -> Union[Dict[str, Any], List[Any]]:
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | list[Any]:
         """
         Make a GET request.
 
@@ -193,8 +193,8 @@ class PocketSmithClient:
     async def post(
         self,
         path: str,
-        json_data: Optional[Dict[str, Any]] = None,
-    ) -> Union[Dict[str, Any], List[Any]]:
+        json_data: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | list[Any]:
         """
         Make a POST request.
 
@@ -210,8 +210,8 @@ class PocketSmithClient:
     async def put(
         self,
         path: str,
-        json_data: Optional[Dict[str, Any]] = None,
-    ) -> Union[Dict[str, Any], List[Any]]:
+        json_data: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | list[Any]:
         """
         Make a PUT request.
 
@@ -224,7 +224,7 @@ class PocketSmithClient:
         """
         return await self._request("PUT", path, json_data=json_data)
 
-    async def delete(self, path: str) -> Union[Dict[str, Any], List[Any]]:
+    async def delete(self, path: str) -> dict[str, Any] | list[Any]:
         """
         Make a DELETE request.
 
@@ -244,11 +244,16 @@ class PocketSmithClient:
         """Async context manager entry."""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: Any,
+    ) -> None:
         """Async context manager exit."""
         await self.close()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """
         Get client statistics.
 

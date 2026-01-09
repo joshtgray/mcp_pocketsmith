@@ -1,7 +1,5 @@
 """FastMCP server creation and configuration for PocketSmith."""
 
-import os
-from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
@@ -13,7 +11,7 @@ from pocketsmith_mcp.tools import register_all_tools
 logger = get_logger("server")
 
 
-def create_server(api_key: Optional[str] = None) -> FastMCP:
+def create_server(api_key: str | None = None) -> FastMCP:
     """
     Create and configure the PocketSmith MCP server.
 

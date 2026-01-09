@@ -1,9 +1,9 @@
 """Unit tests for utility MCP tools."""
 
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.tools.utilities import register_utility_tools
