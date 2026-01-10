@@ -6,11 +6,15 @@
 </p>
 
 <p align="center">
+  <img src="assets/demo.gif" alt="PocketSmith MCP Demo" width="700">
+</p>
+
+<p align="center">
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
   <a href="https://pypi.org/project/pocketsmith-mcp/"><img src="https://img.shields.io/pypi/v/pocketsmith-mcp.svg" alt="PyPI"></a>
-  <a href="https://github.com/your-repo/pocketsmith-mcp/actions"><img src="https://img.shields.io/github/actions/workflow/status/your-repo/pocketsmith-mcp/test.yml?label=tests" alt="Tests"></a>
-  <a href="https://codecov.io/gh/your-repo/pocketsmith-mcp"><img src="https://img.shields.io/codecov/c/github/your-repo/pocketsmith-mcp" alt="Coverage"></a>
+  <img src="https://img.shields.io/badge/tests-148%20passed-brightgreen" alt="Tests: 148 passed">
+  <img src="https://img.shields.io/badge/coverage-84%25-brightgreen" alt="Coverage: 84%">
 </p>
 
 <p align="center">
@@ -44,17 +48,29 @@ uvx pocketsmith-mcp
 pip install pocketsmith-mcp
 ```
 
+### Getting Your API Key
+
+1. **Navigate to Security & Integrations** - Click your profile icon, then select "Security & integrations"
+
+<p align="center">
+  <img src="assets/api-key-step1-security-integrations.png" alt="Navigate to Security & Integrations" width="500">
+</p>
+
+2. **Create a Developer Key** - Go to "Manage developer keys" and click "Create Key"
+
+<p align="center">
+  <img src="assets/api-key-step2-create-key.png" alt="Create Developer Key" width="500">
+</p>
+
 ### Configuration
 
-1. **Get your API key** from [PocketSmith Settings](https://my.pocketsmith.com/settings/api)
-
-2. **Set your environment variable:**
+1. **Set your environment variable:**
 
 ```bash
 export POCKETSMITH_API_KEY=your_api_key_here
 ```
 
-3. **Run the server:**
+2. **Run the server:**
 
 ```bash
 uvx pocketsmith-mcp
@@ -272,7 +288,7 @@ open htmlcov/index.html
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-repo/pocketsmith-mcp.git
+git clone https://github.com/ajanderson1/mcp_pocketsmith.git
 cd pocketsmith-mcp
 
 # Install dependencies (including dev)

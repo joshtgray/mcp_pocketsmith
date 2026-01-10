@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pocketsmith-mcp"
-version = "1.0.0"
+version = "1.0.1"
 description = "Production-ready MCP server for PocketSmith personal finance API"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "PocketSmith MCP", email = "dev@example.com"}
+    {name = "AJ Anderson", email = "ajanderson1@gmail.com"}
 ]
 keywords = ["mcp", "pocketsmith", "finance", "api", "claude", "ai"]
 classifiers = [
