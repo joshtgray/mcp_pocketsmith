@@ -76,7 +76,7 @@ class CategoryRule(BaseModel):
     """A rule for automatically categorizing transactions."""
 
     id: int = Field(..., description="Rule ID")
-    category_id: int = Field(..., description="Category to apply")
+    category: Category = Field(..., description="Category to apply")
     payee_matches: str | None = Field(None, description="Payee pattern to match")
     created_at: datetime | None = Field(None, description="Creation timestamp")
     updated_at: datetime | None = Field(None, description="Last update timestamp")
@@ -88,3 +88,6 @@ class CategoryRuleCreate(BaseModel):
     """Fields for creating a category rule."""
 
     payee_matches: str = Field(..., description="Payee pattern to match")
+    apply_to_uncategorised: bool = Field(
+        False, description="Apply rule to all uncategorised transactions"
+    )

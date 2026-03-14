@@ -189,6 +189,21 @@ def sample_currencies() -> list:
 
 
 @pytest.fixture
+def sample_category_rule() -> dict[str, Any]:
+    """Provide a sample category rule response."""
+    return {
+        "id": 1,
+        "category": {
+            "id": 10,
+            "title": "Groceries",
+        },
+        "payee_matches": "GROCERY STORE",
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z",
+    }
+
+
+@pytest.fixture
 def sample_time_zones() -> list:
     """Provide sample time zones response."""
     return [

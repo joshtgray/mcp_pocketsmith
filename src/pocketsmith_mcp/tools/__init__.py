@@ -7,6 +7,7 @@ from pocketsmith_mcp.tools.accounts import register_account_tools
 from pocketsmith_mcp.tools.attachments import register_attachment_tools
 from pocketsmith_mcp.tools.budgeting import register_budgeting_tools
 from pocketsmith_mcp.tools.categories import register_category_tools
+from pocketsmith_mcp.tools.category_rules import register_category_rules_tools
 from pocketsmith_mcp.tools.events import register_event_tools
 from pocketsmith_mcp.tools.institutions import register_institution_tools
 from pocketsmith_mcp.tools.labels import register_label_tools
@@ -29,6 +30,7 @@ def register_all_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
     register_transaction_account_tools(mcp, client)  # 3 tools
     register_transaction_tools(mcp, client)  # 5 tools
     register_category_tools(mcp, client)  # 5 tools
+    register_category_rules_tools(mcp, client)  # 2 tools
     register_budgeting_tools(mcp, client)  # 4 tools
     register_institution_tools(mcp, client)  # 5 tools
     register_event_tools(mcp, client)  # 5 tools

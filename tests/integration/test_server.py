@@ -71,7 +71,7 @@ class TestServerTools:
     """Tests for server tool registration."""
 
     def test_all_tools_registered(self):
-        """Test that all 43 tools are registered."""
+        """Test that all 45 tools are registered."""
         with patch("pocketsmith_mcp.server.get_config") as mock_config:
             mock_config.return_value = MagicMock(
                 api_key="test_key",
@@ -139,6 +139,9 @@ class TestServerTools:
                 # Label tools
                 "list_labels",
                 "list_saved_searches",
+                # Category rule tools
+                "list_category_rules",
+                "create_category_rule",
                 # Utility tools
                 "list_currencies",
                 "list_time_zones",
@@ -147,8 +150,8 @@ class TestServerTools:
             for tool_name in expected_tools:
                 assert tool_name in tool_names, f"Tool '{tool_name}' not registered"
 
-            # Verify total count (43 tools)
-            assert len(tool_names) == 43, f"Expected 43 tools, got {len(tool_names)}"
+            # Verify total count (45 tools)
+            assert len(tool_names) == 45, f"Expected 45 tools, got {len(tool_names)}"
 
 
 class TestServerConfiguration:
