@@ -16,7 +16,9 @@ def server():
             api_key="test_key",
             timeout=30.0,
             max_retries=3,
-            rate_limit_per_minute=60
+            rate_limit_per_minute=60,
+            host="127.0.0.1",
+            port=8000,
         )
         yield create_server()
 

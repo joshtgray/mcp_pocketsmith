@@ -6,13 +6,19 @@ This module allows running the server as:
     uv run pocketsmith-mcp
 """
 
+import os
+from typing import Literal, cast
+
 from pocketsmith_mcp.server import get_server
+
+TransportType = Literal["stdio", "sse", "streamable-http"]
 
 
 def main() -> None:
     """Run the PocketSmith MCP server."""
+    transport = cast(TransportType, os.getenv("MCP_TRANSPORT", "stdio"))
     server = get_server()
-    server.run()
+    server.run(transport=transport)
 
 
 if __name__ == "__main__":

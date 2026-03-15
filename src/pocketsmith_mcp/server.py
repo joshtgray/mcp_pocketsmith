@@ -39,7 +39,11 @@ def create_server(api_key: str | None = None) -> FastMCP:
     logger.info("Creating PocketSmith MCP server")
 
     # Create FastMCP server
-    mcp = FastMCP("pocketsmith-mcp")
+    mcp = FastMCP(
+        "pocketsmith-mcp",
+        host=config.host,
+        port=config.port,
+    )
 
     # Initialize API client with configuration
     client = PocketSmithClient(

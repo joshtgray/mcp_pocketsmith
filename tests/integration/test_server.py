@@ -17,7 +17,9 @@ class TestServerCreation:
                 api_key="test_key",
                 timeout=30.0,
                 max_retries=3,
-                rate_limit_per_minute=60
+                rate_limit_per_minute=60,
+                host="127.0.0.1",
+                port=8000,
             )
 
             server = create_server(api_key="explicit_test_key")
@@ -32,7 +34,9 @@ class TestServerCreation:
                 api_key="env_test_key",
                 timeout=30.0,
                 max_retries=3,
-                rate_limit_per_minute=60
+                rate_limit_per_minute=60,
+                host="127.0.0.1",
+                port=8000,
             )
 
             server = create_server()
@@ -46,7 +50,9 @@ class TestServerCreation:
                 api_key=None,
                 timeout=30.0,
                 max_retries=3,
-                rate_limit_per_minute=60
+                rate_limit_per_minute=60,
+                host="127.0.0.1",
+                port=8000,
             )
 
             with pytest.raises(ValueError, match="POCKETSMITH_API_KEY"):
@@ -59,7 +65,9 @@ class TestServerCreation:
                 api_key="test_key",
                 timeout=30.0,
                 max_retries=3,
-                rate_limit_per_minute=60
+                rate_limit_per_minute=60,
+                host="127.0.0.1",
+                port=8000,
             )
 
             server = get_server()
@@ -77,7 +85,9 @@ class TestServerTools:
                 api_key="test_key",
                 timeout=30.0,
                 max_retries=3,
-                rate_limit_per_minute=60
+                rate_limit_per_minute=60,
+                host="127.0.0.1",
+                port=8000,
             )
 
             server = create_server()
@@ -164,7 +174,9 @@ class TestServerConfiguration:
                 api_key="test_key",
                 timeout=60.0,  # Custom timeout
                 max_retries=5,
-                rate_limit_per_minute=120
+                rate_limit_per_minute=120,
+                host="127.0.0.1",
+                port=8000,
             )
 
             server = create_server()
@@ -177,7 +189,9 @@ class TestServerConfiguration:
                 api_key="test_key",
                 timeout=30.0,
                 max_retries=3,
-                rate_limit_per_minute=30  # Lower rate limit
+                rate_limit_per_minute=30,  # Lower rate limit
+                host="127.0.0.1",
+                port=8000,
             )
 
             server = create_server()

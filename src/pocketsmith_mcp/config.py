@@ -24,6 +24,11 @@ class Config:
     # API settings
     base_url: str = "https://api.pocketsmith.com/v2"
 
+    # Transport settings
+    transport: str = "stdio"
+    host: str = "127.0.0.1"
+    port: int = 8000
+
     @classmethod
     def from_env(cls, env_file: str | None = None) -> "Config":
         """
@@ -64,6 +69,9 @@ class Config:
             api_timeout=float(os.getenv("API_TIMEOUT", "30")),
             max_retries=int(os.getenv("MAX_RETRIES", "3")),
             rate_limit_per_minute=int(os.getenv("RATE_LIMIT_PER_MINUTE", "60")),
+            transport=os.getenv("MCP_TRANSPORT", "stdio"),
+            host=os.getenv("MCP_HOST", "127.0.0.1"),
+            port=int(os.getenv("MCP_PORT", "8000")),
         )
 
     def validate(self) -> None:
@@ -81,6 +89,15 @@ class Config:
 
         if self.rate_limit_per_minute <= 0:
             raise ConfigurationError("RATE_LIMIT_PER_MINUTE must be positive")
+
+        valid_transports = ("stdio", "sse", "streamable-http")
+        if self.transport not in valid_transports:
+            raise ConfigurationError(
+                f"MCP_TRANSPORT must be one of {valid_transports}, got '{self.transport}'"
+            )
+
+        if self.port <= 0 or self.port > 65535:
+            raise ConfigurationError("MCP_PORT must be between 1 and 65535")
 
 
 # Global config instance (lazy loaded)
