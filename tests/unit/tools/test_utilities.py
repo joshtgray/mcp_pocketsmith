@@ -33,9 +33,18 @@ class TestListCurrencies:
         """Test successful currency listing."""
         mcp, client = mcp_with_tools
         currencies = [
-            {"id": "USD", "name": "US Dollar", "symbol": "$", "decimal_places": 2},
-            {"id": "EUR", "name": "Euro", "symbol": "€", "decimal_places": 2},
-            {"id": "NZD", "name": "New Zealand Dollar", "symbol": "$", "decimal_places": 2}
+            {
+                "id": "USD", "name": "US Dollar", "symbol": "$",
+                "minor_unit": 2, "separators": {"major": ",", "minor": "."},
+            },
+            {
+                "id": "EUR", "name": "Euro", "symbol": "€",
+                "minor_unit": 2, "separators": {"major": ".", "minor": ","},
+            },
+            {
+                "id": "NZD", "name": "New Zealand Dollar", "symbol": "$",
+                "minor_unit": 2, "separators": {"major": ",", "minor": "."},
+            },
         ]
         client.get.return_value = currencies
 
@@ -100,3 +109,42 @@ class TestListTimeZones:
 
         with pytest.raises(ValueError, match="Failed to list time zones"):
             await tool.fn()
+
+
+# ── Phase 6: get_currency ──────────────────────────────────────────────────
+
+
+class TestGetCurrency:
+    """Tests for get_currency tool."""
+
+    @pytest.mark.asyncio
+    async def test_get_currency_success(self, mcp_with_tools):
+        """Test successful currency retrieval."""
+        mcp, client = mcp_with_tools
+        currency = {
+            "id": "nzd",
+            "name": "New Zealand Dollar",
+            "symbol": "$",
+            "minor_unit": 2,
+            "separators": {"major": ",", "minor": "."},
+        }
+        client.get.return_value = currency
+
+        tool = mcp._tool_manager._tools.get("get_currency")
+        result = await tool.fn(currency_id="nzd")
+        result_data = json.loads(result)
+
+        client.get.assert_called_once_with("/currencies/nzd")
+        assert result_data["id"] == "nzd"
+        assert result_data["name"] == "New Zealand Dollar"
+
+    @pytest.mark.asyncio
+    async def test_get_currency_error(self, mcp_with_tools):
+        """Test error handling for currency retrieval."""
+        mcp, client = mcp_with_tools
+        client.get.side_effect = Exception("API Error")
+
+        tool = mcp._tool_manager._tools.get("get_currency")
+
+        with pytest.raises(ValueError, match="Failed to get currency"):
+            await tool.fn(currency_id="nzd")

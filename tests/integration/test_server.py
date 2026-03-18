@@ -108,6 +108,8 @@ class TestServerTools:
                 "update_account",
                 "delete_account",
                 "create_account",
+                "list_accounts_by_institution",
+                "update_account_display_order",
                 # Transaction account tools
                 "list_transaction_accounts",
                 "get_transaction_account",
@@ -159,13 +161,14 @@ class TestServerTools:
                 # Utility tools
                 "list_currencies",
                 "list_time_zones",
+                "get_currency",
             ]
 
             for tool_name in expected_tools:
                 assert tool_name in tool_names, f"Tool '{tool_name}' not registered"
 
-            # Verify total count (49 tools)
-            assert len(tool_names) == 49, f"Expected 49 tools, got {len(tool_names)}"
+            # Verify total count (52 tools)
+            assert len(tool_names) == 52, f"Expected 52 tools, got {len(tool_names)}"
 
 
 class TestServerConfiguration:

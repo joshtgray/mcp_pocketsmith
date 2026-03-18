@@ -236,3 +236,71 @@ class TestCreateAccount:
                 currency_code="NZD",
                 type="bank",
             )
+
+
+# ── Phase 6: list_accounts_by_institution + update_account_display_order ───
+
+
+class TestListAccountsByInstitution:
+    """Tests for list_accounts_by_institution tool."""
+
+    @pytest.mark.asyncio
+    async def test_list_accounts_by_institution_success(self, mcp_with_tools, sample_account):
+        """Test successful listing of accounts by institution."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_account]
+
+        tool = mcp._tool_manager._tools.get("list_accounts_by_institution")
+        result = await tool.fn(institution_id=500)
+        result_data = json.loads(result)
+
+        client.get.assert_called_once_with("/institutions/500/accounts")
+        assert len(result_data) == 1
+        assert result_data[0]["id"] == sample_account["id"]
+
+    @pytest.mark.asyncio
+    async def test_list_accounts_by_institution_error(self, mcp_with_tools):
+        """Test error handling."""
+        mcp, client = mcp_with_tools
+        client.get.side_effect = Exception("API Error")
+
+        tool = mcp._tool_manager._tools.get("list_accounts_by_institution")
+
+        with pytest.raises(ValueError, match="Failed to list accounts for institution"):
+            await tool.fn(institution_id=500)
+
+
+class TestUpdateAccountDisplayOrder:
+    """Tests for update_account_display_order tool."""
+
+    @pytest.mark.asyncio
+    async def test_update_display_order_success(self, mcp_with_tools, sample_account):
+        """Test successful display order update."""
+        mcp, client = mcp_with_tools
+        accounts_response = [
+            {**sample_account, "id": 1},
+            {**sample_account, "id": 2},
+            {**sample_account, "id": 3},
+        ]
+        client.put.return_value = accounts_response
+
+        tool = mcp._tool_manager._tools.get("update_account_display_order")
+        result = await tool.fn(user_id=123, accounts=[{"id": 1}, {"id": 2}, {"id": 3}])
+        result_data = json.loads(result)
+
+        client.put.assert_called_once_with(
+            "/users/123/accounts",
+            json_data={"accounts": [{"id": 1}, {"id": 2}, {"id": 3}]},
+        )
+        assert len(result_data) == 3
+
+    @pytest.mark.asyncio
+    async def test_update_display_order_error(self, mcp_with_tools):
+        """Test error handling."""
+        mcp, client = mcp_with_tools
+        client.put.side_effect = Exception("API Error")
+
+        tool = mcp._tool_manager._tools.get("update_account_display_order")
+
+        with pytest.raises(ValueError, match="Failed to update account display order"):
+            await tool.fn(user_id=123, accounts=[{"id": 1}])

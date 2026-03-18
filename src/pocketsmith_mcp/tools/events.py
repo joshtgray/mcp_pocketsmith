@@ -19,17 +19,22 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         user_id: int,
         start_date: str,
         end_date: str,
+        scenario_id: int | None = None,
     ) -> str:
         """
-        List budget/calendar events for a user.
+        List budget/calendar events for a user or scenario.
 
         Events represent scheduled transactions for budgeting and
         forecasting, including recurring bills and income.
+
+        When scenario_id is provided, returns events scoped to that
+        scenario instead of all user events.
 
         Args:
             user_id: The PocketSmith user ID
             start_date: Filter events on/after date (YYYY-MM-DD)
             end_date: Filter events on/before date (YYYY-MM-DD)
+            scenario_id: Optional scenario ID to scope events to
 
         Returns:
             JSON array of events
@@ -40,7 +45,12 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
                 "end_date": end_date,
             }
 
-            result = await client.get(f"/users/{user_id}/events", params=params)
+            if scenario_id is not None:
+                endpoint = f"/scenarios/{scenario_id}/events"
+            else:
+                endpoint = f"/users/{user_id}/events"
+
+            result = await client.get(endpoint, params=params)
             return json.dumps(result, indent=2)
         except Exception as e:
             logger.error(f"list_events failed: {e}")

@@ -300,6 +300,61 @@ class TestEventIdIsString:
         assert client.delete.call_args[0][0] == "/events/600-1601942400"
 
 
+# ── Phase 6: scenario_id routing for list_events ────────────
+
+
+class TestListEventsByScenario:
+    """Tests for list_events with scenario_id parameter."""
+
+    @pytest.mark.asyncio
+    async def test_list_events_by_scenario_id(self, mcp_with_tools, sample_event):
+        """When scenario_id is provided, route to /scenarios/{id}/events."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_event]
+
+        tool = mcp._tool_manager._tools.get("list_events")
+        result = await tool.fn(
+            user_id=123,
+            start_date="2024-01-01",
+            end_date="2024-12-31",
+            scenario_id=200,
+        )
+        result_data = json.loads(result)
+
+        client.get.assert_called_once_with(
+            "/scenarios/200/events",
+            params={"start_date": "2024-01-01", "end_date": "2024-12-31"},
+        )
+        assert len(result_data) == 1
+
+    @pytest.mark.asyncio
+    async def test_list_events_without_scenario_id_uses_user_endpoint(
+        self, mcp_with_tools, sample_event
+    ):
+        """Without scenario_id, the default /users/{id}/events endpoint is used."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_event]
+
+        tool = mcp._tool_manager._tools.get("list_events")
+        await tool.fn(user_id=123, start_date="2024-01-01", end_date="2024-12-31")
+
+        client.get.assert_called_once_with(
+            "/users/123/events",
+            params={"start_date": "2024-01-01", "end_date": "2024-12-31"},
+        )
+
+    @pytest.mark.asyncio
+    async def test_list_events_scenario_id_defaults_to_none(self, mcp_with_tools, sample_event):
+        """scenario_id should be optional and default to None."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = []
+
+        tool = mcp._tool_manager._tools.get("list_events")
+        # Call without scenario_id — should not raise
+        await tool.fn(user_id=123, start_date="2024-01-01", end_date="2024-12-31")
+        assert "/users/123/events" in client.get.call_args[0][0]
+
+
 class TestBehaviourEnumValues:
     """Verify only one/forward/all are accepted for behaviour."""
 

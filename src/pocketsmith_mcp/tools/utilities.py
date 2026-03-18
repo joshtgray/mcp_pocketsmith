@@ -19,11 +19,11 @@ def register_utility_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         List all supported currencies.
 
         Returns all currency codes supported by PocketSmith,
-        including their names, symbols, and decimal places.
+        including their names, symbols, minor units, and separators.
 
         Returns:
-            JSON array of currencies with id, name, symbol,
-            and decimal_places fields
+            JSON array of currencies with id, name, minor_unit,
+            separators, and symbol fields
         """
         try:
             result = await client.get("/currencies")
@@ -50,3 +50,22 @@ def register_utility_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         except Exception as e:
             logger.error(f"list_time_zones failed: {e}")
             raise ValueError(f"Failed to list time zones: {e}")
+
+    @mcp.tool()
+    async def get_currency(currency_id: str) -> str:
+        """
+        Get details of a specific currency.
+
+        Args:
+            currency_id: The currency ID (lowercase code, e.g. "nzd", "usd")
+
+        Returns:
+            JSON object with currency details including id, name,
+            minor_unit, separators, and symbol
+        """
+        try:
+            result = await client.get(f"/currencies/{currency_id}")
+            return json.dumps(result, indent=2)
+        except Exception as e:
+            logger.error(f"get_currency failed: {e}")
+            raise ValueError(f"Failed to get currency {currency_id}: {e}")

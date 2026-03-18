@@ -57,7 +57,7 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             user_id: The PocketSmith user ID
             start_date: Analysis start date (YYYY-MM-DD)
             end_date: Analysis end date (YYYY-MM-DD)
-            period: Period grouping ("weeks" or "months")
+            period: Period grouping ("weeks", "months", "years", or "event")
             interval: Period interval (e.g., 2 for bi-weekly)
 
         Returns:
@@ -98,7 +98,7 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             user_id: The PocketSmith user ID
             start_date: Analysis start date (YYYY-MM-DD)
             end_date: Analysis end date (YYYY-MM-DD)
-            period: Period grouping ("weeks" or "months")
+            period: Period grouping ("weeks", "months", "years", or "event")
             interval: Period interval
             categories: Comma-separated category IDs to include
             scenarios: Comma-separated scenario IDs to include

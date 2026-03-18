@@ -158,3 +158,52 @@ def register_account_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         except Exception as e:
             logger.error(f"create_account failed: {e}")
             raise ValueError(f"Failed to create account: {e}")
+
+    @mcp.tool()
+    async def list_accounts_by_institution(institution_id: int) -> str:
+        """
+        List all accounts belonging to a specific institution.
+
+        Args:
+            institution_id: The institution ID
+
+        Returns:
+            JSON array of accounts for the institution
+        """
+        try:
+            result = await client.get(f"/institutions/{institution_id}/accounts")
+            return json.dumps(result, indent=2)
+        except Exception as e:
+            logger.error(f"list_accounts_by_institution failed: {e}")
+            raise ValueError(
+                f"Failed to list accounts for institution {institution_id}: {e}"
+            )
+
+    @mcp.tool()
+    async def update_account_display_order(
+        user_id: int,
+        accounts: list[dict[str, int]],
+    ) -> str:
+        """
+        Update the display order of accounts for a user.
+
+        Reorders the user's accounts according to the provided list.
+        Each item must include at least an "id" key.
+
+        Args:
+            user_id: The PocketSmith user ID
+            accounts: List of account objects in new display order,
+                      e.g. [{"id": 1}, {"id": 2}, {"id": 3}]
+
+        Returns:
+            JSON array of accounts in their new order
+        """
+        try:
+            body = {"accounts": accounts}
+            result = await client.put(
+                f"/users/{user_id}/accounts", json_data=body
+            )
+            return json.dumps(result, indent=2)
+        except Exception as e:
+            logger.error(f"update_account_display_order failed: {e}")
+            raise ValueError(f"Failed to update account display order: {e}")

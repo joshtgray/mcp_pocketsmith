@@ -26,7 +26,7 @@ def register_all_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         client: PocketSmith API client
     """
     register_user_tools(mcp, client)  # 3 tools
-    register_account_tools(mcp, client)  # 5 tools
+    register_account_tools(mcp, client)  # 7 tools
     register_transaction_account_tools(mcp, client)  # 3 tools
     register_transaction_tools(mcp, client)  # 5 tools
     register_category_tools(mcp, client)  # 5 tools
@@ -36,7 +36,7 @@ def register_all_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
     register_event_tools(mcp, client)  # 5 tools
     register_attachment_tools(mcp, client)  # 8 tools
     register_label_tools(mcp, client)  # 2 tools
-    register_utility_tools(mcp, client)  # 2 tools
+    register_utility_tools(mcp, client)  # 3 tools
 
 
 __all__ = ["register_all_tools"]
