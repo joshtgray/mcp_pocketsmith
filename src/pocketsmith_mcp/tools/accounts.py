@@ -120,3 +120,41 @@ def register_account_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         except Exception as e:
             logger.error(f"delete_account failed: {e}")
             raise ValueError(f"Failed to delete account {account_id}: {e}")
+
+    @mcp.tool()
+    async def create_account(
+        user_id: int,
+        institution_id: int,
+        title: str,
+        currency_code: str,
+        type: str,
+    ) -> str:
+        """
+        Create a new account for a user.
+
+        Creates a new financial account belonging to the user within
+        a specified institution.
+
+        Args:
+            user_id: The PocketSmith user ID
+            institution_id: The ID of the institution to create this account in
+            title: A title for the account (e.g., "Savings", "Credit Card")
+            currency_code: Currency code for the account (e.g., "USD", "NZD")
+            type: Account type (bank, credits, cash, loans, mortgage, stocks,
+                  vehicle, property, insurance, other_asset, other_liability)
+
+        Returns:
+            JSON object with created account details
+        """
+        try:
+            body = {
+                "institution_id": institution_id,
+                "title": title,
+                "currency_code": currency_code,
+                "type": type,
+            }
+            result = await client.post(f"/users/{user_id}/accounts", json_data=body)
+            return json.dumps(result, indent=2)
+        except Exception as e:
+            logger.error(f"create_account failed: {e}")
+            raise ValueError(f"Failed to create account: {e}")

@@ -107,6 +107,7 @@ class TestServerTools:
                 "get_account",
                 "update_account",
                 "delete_account",
+                "create_account",
                 # Transaction account tools
                 "list_transaction_accounts",
                 "get_transaction_account",
@@ -160,8 +161,8 @@ class TestServerTools:
             for tool_name in expected_tools:
                 assert tool_name in tool_names, f"Tool '{tool_name}' not registered"
 
-            # Verify total count (45 tools)
-            assert len(tool_names) == 45, f"Expected 45 tools, got {len(tool_names)}"
+            # Verify total count (46 tools)
+            assert len(tool_names) == 46, f"Expected 46 tools, got {len(tool_names)}"
 
 
 class TestServerConfiguration:

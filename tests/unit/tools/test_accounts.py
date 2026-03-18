@@ -14,6 +14,7 @@ def mock_client():
     """Create a mock PocketSmith client."""
     client = MagicMock()
     client.get = AsyncMock()
+    client.post = AsyncMock()
     client.put = AsyncMock()
     client.delete = AsyncMock()
     return client
@@ -121,3 +122,117 @@ class TestDeleteAccount:
         client.delete.assert_called_once_with("/accounts/456")
         assert result_data["deleted"] is True
         assert result_data["account_id"] == 456
+
+
+class TestCreateAccount:
+    """Tests for create_account tool."""
+
+    @pytest.mark.asyncio
+    async def test_create_account_success(self, mcp_with_tools, sample_account):
+        """Test successful account creation with all required params."""
+        mcp, client = mcp_with_tools
+        client.post.return_value = sample_account
+
+        tool = mcp._tool_manager._tools.get("create_account")
+        result = await tool.fn(
+            user_id=123,
+            institution_id=500,
+            title="Main Checking",
+            currency_code="NZD",
+            type="bank",
+        )
+        result_data = json.loads(result)
+
+        client.post.assert_called_once_with(
+            "/users/123/accounts",
+            json_data={
+                "institution_id": 500,
+                "title": "Main Checking",
+                "currency_code": "NZD",
+                "type": "bank",
+            },
+        )
+        assert result_data["id"] == sample_account["id"]
+        assert result_data["title"] == "Main Checking"
+
+    @pytest.mark.asyncio
+    async def test_create_account_required_params(self, mcp_with_tools):
+        """Test that all four required params are sent in the body."""
+        mcp, client = mcp_with_tools
+        created = {
+            "id": 99,
+            "title": "Savings",
+            "currency_code": "USD",
+            "type": "bank",
+            "is_net_worth": True,
+            "current_balance": 0,
+            "current_balance_date": "2026-03-18",
+            "current_balance_in_base_currency": 0,
+            "safe_balance": None,
+            "created_at": "2026-03-18T00:00:00Z",
+            "updated_at": "2026-03-18T00:00:00Z",
+            "transaction_accounts": [],
+            "scenarios": [],
+        }
+        client.post.return_value = created
+
+        tool = mcp._tool_manager._tools.get("create_account")
+        result = await tool.fn(
+            user_id=1,
+            institution_id=42,
+            title="Savings",
+            currency_code="USD",
+            type="bank",
+        )
+        result_data = json.loads(result)
+
+        call_args = client.post.call_args
+        body = call_args.kwargs.get("json_data") or call_args[1].get("json_data")
+        assert body["institution_id"] == 42
+        assert body["title"] == "Savings"
+        assert body["currency_code"] == "USD"
+        assert body["type"] == "bank"
+        assert result_data["id"] == 99
+
+    @pytest.mark.asyncio
+    async def test_create_account_all_types(self, mcp_with_tools, sample_account):
+        """Test creating account with each valid account type."""
+        mcp, client = mcp_with_tools
+        valid_types = [
+            "bank", "credits", "cash", "loans", "mortgage",
+            "stocks", "vehicle", "property", "insurance",
+            "other_asset", "other_liability",
+        ]
+
+        tool = mcp._tool_manager._tools.get("create_account")
+
+        for acct_type in valid_types:
+            client.post.reset_mock()
+            client.post.return_value = {**sample_account, "type": acct_type}
+
+            result = await tool.fn(
+                user_id=1,
+                institution_id=42,
+                title="Test",
+                currency_code="NZD",
+                type=acct_type,
+            )
+            result_data = json.loads(result)
+            assert result_data["type"] == acct_type
+
+    @pytest.mark.asyncio
+    async def test_create_account_error(self, mcp_with_tools):
+        """Test error handling for account creation."""
+        mcp, client = mcp_with_tools
+        client.post.side_effect = Exception("API Error")
+
+        tool = mcp._tool_manager._tools.get("create_account")
+
+        with pytest.raises(ValueError, match="Failed to create account"):
+            await tool.fn(
+                user_id=123,
+                institution_id=500,
+                title="Test",
+                currency_code="NZD",
+                type="bank",
+            )
