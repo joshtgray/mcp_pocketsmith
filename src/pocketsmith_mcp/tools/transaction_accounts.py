@@ -71,38 +71,30 @@ def register_transaction_account_tools(mcp: FastMCP, client: PocketSmithClient) 
     @mcp.tool()
     async def update_transaction_account(
         transaction_account_id: int,
-        name: str | None = None,
-        number: str | None = None,
+        institution_id: int | None = None,
         starting_balance: float | None = None,
         starting_balance_date: str | None = None,
-        is_net_worth: bool | None = None,
     ) -> str:
         """
         Update a transaction account's settings.
 
         Args:
             transaction_account_id: The transaction account ID
-            name: Account name
-            number: Account number (for reference only)
+            institution_id: Institution ID to associate with
             starting_balance: Starting balance amount
             starting_balance_date: Starting balance date (YYYY-MM-DD)
-            is_net_worth: Whether to include in net worth calculations
 
         Returns:
             JSON object with updated transaction account details
         """
         try:
             body: dict[str, Any] = {}
-            if name is not None:
-                body["name"] = name
-            if number is not None:
-                body["number"] = number
+            if institution_id is not None:
+                body["institution_id"] = institution_id
             if starting_balance is not None:
                 body["starting_balance"] = starting_balance
             if starting_balance_date is not None:
                 body["starting_balance_date"] = starting_balance_date
-            if is_net_worth is not None:
-                body["is_net_worth"] = is_net_worth
 
             if not body:
                 raise ValueError("At least one field must be provided for update")

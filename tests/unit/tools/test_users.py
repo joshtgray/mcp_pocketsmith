@@ -107,21 +107,21 @@ class TestUpdateUser:
         assert result_data["name"] == "New Name"
 
     @pytest.mark.asyncio
-    async def test_update_user_email(self, mcp_with_tools, sample_user):
-        """Test updating user email."""
+    async def test_update_user_beta_user(self, mcp_with_tools, sample_user):
+        """Test updating user beta_user flag."""
         mcp, client = mcp_with_tools
-        updated_user = {**sample_user, "email": "new@example.com"}
+        updated_user = {**sample_user, "beta_user": True}
         client.put.return_value = updated_user
 
         tool = mcp._tool_manager._tools.get("update_user")
-        result = await tool.fn(user_id=123, email="new@example.com")
+        result = await tool.fn(user_id=123, beta_user=True)
         result_data = json.loads(result)
 
         client.put.assert_called_once_with(
             "/users/123",
-            json_data={"email": "new@example.com"}
+            json_data={"beta_user": True}
         )
-        assert result_data["email"] == "new@example.com"
+        assert result_data["beta_user"] is True
 
     @pytest.mark.asyncio
     async def test_update_user_multiple_fields(self, mcp_with_tools, sample_user):

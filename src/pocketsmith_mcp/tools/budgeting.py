@@ -44,11 +44,8 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         user_id: int,
         start_date: str,
         end_date: str,
-        period: str | None = None,
-        interval: int | None = None,
-        categories: str | None = None,
-        scenarios: str | None = None,
-        roll_up: bool = False,
+        period: str,
+        interval: int,
     ) -> str:
         """
         Get budget analysis summary with actual vs forecast comparison.
@@ -60,11 +57,8 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             user_id: The PocketSmith user ID
             start_date: Analysis start date (YYYY-MM-DD)
             end_date: Analysis end date (YYYY-MM-DD)
-            period: Period grouping (weeks, months)
+            period: Period grouping ("weeks" or "months")
             interval: Period interval (e.g., 2 for bi-weekly)
-            categories: Comma-separated category IDs to include
-            scenarios: Comma-separated scenario IDs to include
-            roll_up: Roll up child categories to parents
 
         Returns:
             JSON object with budget analysis including actual amounts,
@@ -74,16 +68,9 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             params = {
                 "start_date": start_date,
                 "end_date": end_date,
-                "roll_up": 1 if roll_up else 0,
+                "period": period,
+                "interval": interval,
             }
-            if period:
-                params["period"] = period
-            if interval:
-                params["interval"] = interval
-            if categories:
-                params["categories"] = categories
-            if scenarios:
-                params["scenarios"] = scenarios
 
             result = await client.get(f"/users/{user_id}/budget_summary", params=params)
             return json.dumps(result, indent=2)
@@ -96,11 +83,10 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         user_id: int,
         start_date: str,
         end_date: str,
-        period: str | None = None,
-        interval: int | None = None,
-        categories: str | None = None,
-        scenarios: str | None = None,
-        roll_up: bool = False,
+        period: str,
+        interval: int,
+        categories: str,
+        scenarios: str,
     ) -> str:
         """
         Get spending trend analysis over time.
@@ -112,11 +98,10 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             user_id: The PocketSmith user ID
             start_date: Analysis start date (YYYY-MM-DD)
             end_date: Analysis end date (YYYY-MM-DD)
-            period: Period grouping (weeks, months)
+            period: Period grouping ("weeks" or "months")
             interval: Period interval
             categories: Comma-separated category IDs to include
             scenarios: Comma-separated scenario IDs to include
-            roll_up: Roll up child categories to parents
 
         Returns:
             JSON object with trend analysis data including period-by-period
@@ -126,16 +111,11 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             params = {
                 "start_date": start_date,
                 "end_date": end_date,
-                "roll_up": 1 if roll_up else 0,
+                "period": period,
+                "interval": interval,
+                "categories": categories,
+                "scenarios": scenarios,
             }
-            if period:
-                params["period"] = period
-            if interval:
-                params["interval"] = interval
-            if categories:
-                params["categories"] = categories
-            if scenarios:
-                params["scenarios"] = scenarios
 
             result = await client.get(f"/users/{user_id}/trend_analysis", params=params)
             return json.dumps(result, indent=2)

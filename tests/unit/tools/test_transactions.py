@@ -49,6 +49,22 @@ class TestListTransactions:
         assert result_data[0]["id"] == sample_transaction["id"]
 
     @pytest.mark.asyncio
+    async def test_list_transactions_specific_page(self, mcp_with_tools, sample_transaction):
+        """Test listing transactions with a specific page number."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_transaction]
+
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        result = await tool.fn(user_id=123, page=2)
+        result_data = json.loads(result)
+
+        client.get.assert_called_once_with(
+            "/users/123/transactions",
+            params={"page": 2}
+        )
+        assert len(result_data) == 1
+
+    @pytest.mark.asyncio
     async def test_list_transactions_with_date_filter(self, mcp_with_tools, sample_transaction):
         """Test transaction listing with date filter."""
         mcp, client = mcp_with_tools
@@ -196,7 +212,7 @@ class TestCreateTransaction:
 
         client.post.assert_called_once()
         call_args = client.post.call_args
-        assert call_args[1]["json_data"]["labels"] == ["coffee", "work"]
+        assert call_args[1]["json_data"]["labels"] == "coffee,work"
 
 
 class TestUpdateTransaction:
@@ -231,6 +247,40 @@ class TestUpdateTransaction:
         client.put.assert_called_once_with(
             "/transactions/456",
             json_data={"category_id": 200}
+        )
+
+    @pytest.mark.asyncio
+    async def test_update_transaction_with_labels_comma_string(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """Labels should be sent as a comma-separated string, not a list."""
+        mcp, client = mcp_with_tools
+        client.put.return_value = sample_transaction
+
+        tool = mcp._tool_manager._tools.get("update_transaction")
+        await tool.fn(transaction_id=456, labels=["coffee", "work"])
+
+        call_args = client.put.call_args
+        assert call_args[1]["json_data"]["labels"] == "coffee,work"
+
+    @pytest.mark.asyncio
+    async def test_update_transaction_with_splits(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """Test updating transaction with splits."""
+        mcp, client = mcp_with_tools
+        client.put.return_value = sample_transaction
+
+        splits = [
+            {"amount": -3.00, "category_id": 10},
+            {"amount": -2.50, "category_id": 20},
+        ]
+        tool = mcp._tool_manager._tools.get("update_transaction")
+        await tool.fn(transaction_id=456, splits=splits)
+
+        client.put.assert_called_once_with(
+            "/transactions/456",
+            json_data={"splits": splits}
         )
 
 

@@ -108,6 +108,31 @@ class TestCreateCategoryRule:
         assert result_data["id"] == sample_category_rule["id"]
 
     @pytest.mark.asyncio
+    async def test_create_category_rule_with_apply_to_all(
+        self, mcp_with_tools, sample_category_rule
+    ):
+        """Test creating a category rule with apply_to_all flag."""
+        mcp, client = mcp_with_tools
+        client.post.return_value = sample_category_rule
+
+        tool = mcp._tool_manager._tools.get("create_category_rule")
+        result = await tool.fn(
+            category_id=10,
+            payee_matches="GROCERY STORE",
+            apply_to_all=True,
+        )
+        result_data = json.loads(result)
+
+        client.post.assert_called_once_with(
+            "/categories/10/category_rules",
+            json_data={
+                "payee_matches": "GROCERY STORE",
+                "apply_to_all": True,
+            },
+        )
+        assert result_data["id"] == sample_category_rule["id"]
+
+    @pytest.mark.asyncio
     async def test_list_category_rules_error(self, mcp_with_tools):
         """Test error handling for listing category rules."""
         mcp, client = mcp_with_tools

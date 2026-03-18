@@ -143,3 +143,19 @@ class TestDeleteInstitution:
 
         client.delete.assert_called_once_with("/institutions/500")
         assert result_data["deleted"] is True
+
+    @pytest.mark.asyncio
+    async def test_delete_institution_with_merge(self, mcp_with_tools):
+        """Test institution deletion with merge_into_institution_id."""
+        mcp, client = mcp_with_tools
+        client.delete.return_value = None
+
+        tool = mcp._tool_manager._tools.get("delete_institution")
+        result = await tool.fn(institution_id=500, merge_into_institution_id=501)
+        result_data = json.loads(result)
+
+        client.delete.assert_called_once_with(
+            "/institutions/500",
+            params={"merge_into_institution_id": 501}
+        )
+        assert result_data["deleted"] is True

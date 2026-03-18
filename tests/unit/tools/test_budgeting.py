@@ -91,6 +91,41 @@ class TestGetBudgetSummary:
 
         assert result_data["total_income"] == 5000.00
 
+    @pytest.mark.asyncio
+    async def test_get_budget_summary_requires_period_and_interval(self, mcp_with_tools):
+        """period and interval are required — omitting them must raise TypeError."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = {}
+
+        tool = mcp._tool_manager._tools.get("get_budget_summary")
+        with pytest.raises(TypeError):
+            await tool.fn(user_id=123, start_date="2024-01-01", end_date="2024-01-31")
+
+    @pytest.mark.asyncio
+    async def test_get_budget_summary_sends_correct_params(self, mcp_with_tools):
+        """Budget summary sends only API-valid params (no roll_up/categories/scenarios)."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = {}
+
+        tool = mcp._tool_manager._tools.get("get_budget_summary")
+        await tool.fn(
+            user_id=123,
+            start_date="2024-01-01",
+            end_date="2024-01-31",
+            period="months",
+            interval=1
+        )
+
+        client.get.assert_called_once_with(
+            "/users/123/budget_summary",
+            params={
+                "start_date": "2024-01-01",
+                "end_date": "2024-01-31",
+                "period": "months",
+                "interval": 1,
+            }
+        )
+
 
 class TestGetTrendAnalysis:
     """Tests for get_trend_analysis tool."""
@@ -110,12 +145,57 @@ class TestGetTrendAnalysis:
             user_id=123,
             period="months",
             interval=1,
+            categories="100,200",
+            scenarios="1",
             start_date="2024-01-01",
             end_date="2024-12-31"
         )
         result_data = json.loads(result)
 
         assert "periods" in result_data
+
+    @pytest.mark.asyncio
+    async def test_get_trend_analysis_requires_all_params(self, mcp_with_tools):
+        """period, interval, categories, scenarios are all required."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = {}
+
+        tool = mcp._tool_manager._tools.get("get_trend_analysis")
+        with pytest.raises(TypeError):
+            await tool.fn(
+                user_id=123,
+                start_date="2024-01-01",
+                end_date="2024-12-31"
+            )
+
+    @pytest.mark.asyncio
+    async def test_get_trend_analysis_sends_correct_params(self, mcp_with_tools):
+        """Trend analysis sends only API-valid params (no roll_up)."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = {}
+
+        tool = mcp._tool_manager._tools.get("get_trend_analysis")
+        await tool.fn(
+            user_id=123,
+            start_date="2024-01-01",
+            end_date="2024-12-31",
+            period="months",
+            interval=1,
+            categories="100,200",
+            scenarios="1"
+        )
+
+        client.get.assert_called_once_with(
+            "/users/123/trend_analysis",
+            params={
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "period": "months",
+                "interval": 1,
+                "categories": "100,200",
+                "scenarios": "1",
+            }
+        )
 
 
 class TestClearForecastCache:

@@ -20,7 +20,6 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         start_date: str | None = None,
         end_date: str | None = None,
         updated_since: str | None = None,
-        category_id: int | None = None,
         search: str | None = None,
         uncategorised: bool = False,
         needs_review: bool = False,
@@ -35,7 +34,6 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             start_date: Filter transactions on/after date (YYYY-MM-DD)
             end_date: Filter transactions on/before date (YYYY-MM-DD)
             updated_since: Filter by last update time (ISO 8601)
-            category_id: Filter by category ID
             search: Search transactions by payee/memo
             uncategorised: Only show uncategorised transactions
             needs_review: Only show transactions needing review
@@ -53,8 +51,6 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
                 params["end_date"] = end_date
             if updated_since:
                 params["updated_since"] = updated_since
-            if category_id:
-                params["category_id"] = category_id
             if search:
                 params["search"] = search
             if uncategorised:
@@ -139,7 +135,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             if cheque_number is not None:
                 body["cheque_number"] = cheque_number
             if labels is not None:
-                body["labels"] = labels
+                body["labels"] = ",".join(labels)
 
             result = await client.post(
                 f"/transaction_accounts/{transaction_account_id}/transactions",
@@ -163,6 +159,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         is_transfer: bool | None = None,
         labels: list[str] | None = None,
         needs_review: bool | None = None,
+        splits: list[dict[str, Any]] | None = None,
     ) -> str:
         """
         Update an existing transaction.
@@ -179,6 +176,9 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             is_transfer: Update transfer status
             labels: New labels (replaces existing)
             needs_review: Update review status
+            splits: Split the transaction into sub-transactions. Each split
+                requires an amount; optionally include payee, category_id,
+                is_transfer, and date.
 
         Returns:
             JSON object with updated transaction
@@ -202,9 +202,11 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             if is_transfer is not None:
                 body["is_transfer"] = is_transfer
             if labels is not None:
-                body["labels"] = labels
+                body["labels"] = ",".join(labels)
             if needs_review is not None:
                 body["needs_review"] = needs_review
+            if splits is not None:
+                body["splits"] = splits
 
             if not body:
                 raise ValueError("At least one field must be provided for update")

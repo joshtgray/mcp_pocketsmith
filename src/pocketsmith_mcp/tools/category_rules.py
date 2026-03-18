@@ -40,6 +40,7 @@ def register_category_rules_tools(mcp: FastMCP, client: PocketSmithClient) -> No
         category_id: int,
         payee_matches: str,
         apply_to_uncategorised: bool = False,
+        apply_to_all: bool = False,
     ) -> str:
         """
         Create a category rule to automatically categorise transactions.
@@ -49,6 +50,7 @@ def register_category_rules_tools(mcp: FastMCP, client: PocketSmithClient) -> No
             payee_matches: The keyword/s to match against transaction payees
             apply_to_uncategorised: Apply the rule to all existing
                                    uncategorised transactions
+            apply_to_all: Apply the rule to all existing transactions
 
         Returns:
             JSON object with the created category rule
@@ -57,6 +59,8 @@ def register_category_rules_tools(mcp: FastMCP, client: PocketSmithClient) -> No
             body: dict[str, Any] = {"payee_matches": payee_matches}
             if apply_to_uncategorised:
                 body["apply_to_uncategorised"] = apply_to_uncategorised
+            if apply_to_all:
+                body["apply_to_all"] = apply_to_all
 
             result = await client.post(
                 f"/categories/{category_id}/category_rules", json_data=body

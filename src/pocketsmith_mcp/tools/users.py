@@ -55,11 +55,11 @@ def register_user_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
     async def update_user(
         user_id: int,
         name: str | None = None,
-        email: str | None = None,
         time_zone: str | None = None,
         week_start_day: int | None = None,
         base_currency_code: str | None = None,
         always_show_base_currency: bool | None = None,
+        beta_user: bool | None = None,
     ) -> str:
         """
         Update a user's settings.
@@ -67,11 +67,11 @@ def register_user_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         Args:
             user_id: The PocketSmith user ID
             name: Display name
-            email: Email address
             time_zone: Time zone (e.g., "Pacific/Auckland")
             week_start_day: Week start day (0=Sunday, 1=Monday, etc.)
             base_currency_code: Base currency code (e.g., "USD", "NZD")
             always_show_base_currency: Whether to always show amounts in base currency
+            beta_user: Whether the user is a beta user
 
         Returns:
             JSON object with updated user details
@@ -80,8 +80,6 @@ def register_user_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             body: dict[str, Any] = {}
             if name is not None:
                 body["name"] = name
-            if email is not None:
-                body["email"] = email
             if time_zone is not None:
                 body["time_zone"] = time_zone
             if week_start_day is not None:
@@ -90,6 +88,8 @@ def register_user_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
                 body["base_currency_code"] = base_currency_code
             if always_show_base_currency is not None:
                 body["always_show_base_currency"] = always_show_base_currency
+            if beta_user is not None:
+                body["beta_user"] = beta_user
 
             if not body:
                 raise ValueError("At least one field must be provided for update")

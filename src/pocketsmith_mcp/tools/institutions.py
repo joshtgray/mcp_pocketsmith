@@ -118,7 +118,10 @@ def register_institution_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             raise ValueError(f"Failed to update institution {institution_id}: {e}")
 
     @mcp.tool()
-    async def delete_institution(institution_id: int) -> str:
+    async def delete_institution(
+        institution_id: int,
+        merge_into_institution_id: int | None = None,
+    ) -> str:
         """
         Delete an institution.
 
@@ -127,12 +130,20 @@ def register_institution_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
 
         Args:
             institution_id: The institution ID to delete
+            merge_into_institution_id: Optional institution ID to merge
+                accounts into before deleting
 
         Returns:
             Confirmation message
         """
         try:
-            await client.delete(f"/institutions/{institution_id}")
+            if merge_into_institution_id is not None:
+                await client.delete(
+                    f"/institutions/{institution_id}",
+                    params={"merge_into_institution_id": merge_into_institution_id},
+                )
+            else:
+                await client.delete(f"/institutions/{institution_id}")
             return json.dumps({
                 "deleted": True,
                 "institution_id": institution_id,

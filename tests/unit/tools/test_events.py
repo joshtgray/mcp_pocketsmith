@@ -47,16 +47,33 @@ class TestListEvents:
 
     @pytest.mark.asyncio
     async def test_list_events_basic(self, mcp_with_tools, sample_event):
-        """Test basic event listing."""
+        """Test basic event listing with required date params."""
         mcp, client = mcp_with_tools
         client.get.return_value = [sample_event]
 
         tool = mcp._tool_manager._tools.get("list_events")
-        result = await tool.fn(user_id=123)
+        result = await tool.fn(
+            user_id=123,
+            start_date="2024-01-01",
+            end_date="2024-12-31"
+        )
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with("/users/123/events", params={})
+        client.get.assert_called_once_with(
+            "/users/123/events",
+            params={"start_date": "2024-01-01", "end_date": "2024-12-31"}
+        )
         assert len(result_data) == 1
+
+    @pytest.mark.asyncio
+    async def test_list_events_requires_dates(self, mcp_with_tools):
+        """start_date and end_date are required — omitting them must raise TypeError."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = []
+
+        tool = mcp._tool_manager._tools.get("list_events")
+        with pytest.raises(TypeError):
+            await tool.fn(user_id=123)
 
     @pytest.mark.asyncio
     async def test_list_events_with_date_filter(self, mcp_with_tools, sample_event):

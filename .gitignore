@@ -175,4 +175,4 @@ logs/
 
 # Development
 dev/
-PRPs
+PRPs.venv.nosync/

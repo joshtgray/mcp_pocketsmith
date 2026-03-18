@@ -100,20 +100,20 @@ class TestUpdateTransactionAccount:
     """Tests for update_transaction_account tool."""
 
     @pytest.mark.asyncio
-    async def test_update_transaction_account_name(
+    async def test_update_transaction_account_institution_id(
         self, mcp_with_tools, sample_transaction_account
     ):
-        """Test updating transaction account name."""
+        """Test updating transaction account institution_id."""
         mcp, client = mcp_with_tools
-        updated = {**sample_transaction_account, "name": "Primary Checking"}
+        updated = {**sample_transaction_account, "institution_id": 42}
         client.put.return_value = updated
 
         tool = mcp._tool_manager._tools.get("update_transaction_account")
-        _result = await tool.fn(transaction_account_id=800, name="Primary Checking")
+        _result = await tool.fn(transaction_account_id=800, institution_id=42)
 
         client.put.assert_called_once_with(
             "/transaction_accounts/800",
-            json_data={"name": "Primary Checking"}
+            json_data={"institution_id": 42}
         )
 
     @pytest.mark.asyncio

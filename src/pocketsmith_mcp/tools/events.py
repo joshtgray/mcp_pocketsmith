@@ -17,8 +17,8 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
     @mcp.tool()
     async def list_events(
         user_id: int,
-        start_date: str | None = None,
-        end_date: str | None = None,
+        start_date: str,
+        end_date: str,
     ) -> str:
         """
         List budget/calendar events for a user.
@@ -35,11 +35,10 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             JSON array of events
         """
         try:
-            params: dict[str, Any] = {}
-            if start_date:
-                params["start_date"] = start_date
-            if end_date:
-                params["end_date"] = end_date
+            params: dict[str, Any] = {
+                "start_date": start_date,
+                "end_date": end_date,
+            }
 
             result = await client.get(f"/users/{user_id}/events", params=params)
             return json.dumps(result, indent=2)
@@ -75,7 +74,6 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         repeat_type: str = "once",
         repeat_interval: int = 1,
         note: str | None = None,
-        colour: str | None = None,
     ) -> str:
         """
         Create a new budget event.
@@ -92,7 +90,6 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
                         "fortnightly", "monthly", "yearly", "each", "once_off")
             repeat_interval: Interval for repeating (e.g., 2 for every 2 weeks)
             note: Event note/description
-            colour: Event color (hex, e.g., "#2196F3")
 
         Returns:
             JSON object with created event
@@ -107,8 +104,6 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             }
             if note is not None:
                 body["note"] = note
-            if colour is not None:
-                body["colour"] = colour
 
             result = await client.post(f"/scenarios/{scenario_id}/events", json_data=body)
             return json.dumps(result, indent=2)
