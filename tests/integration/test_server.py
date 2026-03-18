@@ -147,6 +147,9 @@ class TestServerTools:
                 "create_attachment",
                 "update_attachment",
                 "delete_attachment",
+                "list_transaction_attachments",
+                "assign_attachment_to_transaction",
+                "unassign_attachment_from_transaction",
                 # Label tools
                 "list_labels",
                 "list_saved_searches",
@@ -161,8 +164,8 @@ class TestServerTools:
             for tool_name in expected_tools:
                 assert tool_name in tool_names, f"Tool '{tool_name}' not registered"
 
-            # Verify total count (46 tools)
-            assert len(tool_names) == 46, f"Expected 46 tools, got {len(tool_names)}"
+            # Verify total count (49 tools)
+            assert len(tool_names) == 49, f"Expected 49 tools, got {len(tool_names)}"
 
 
 class TestServerConfiguration:

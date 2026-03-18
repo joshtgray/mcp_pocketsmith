@@ -147,3 +147,86 @@ def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         except Exception as e:
             logger.error(f"delete_attachment failed: {e}")
             raise ValueError(f"Failed to delete attachment {attachment_id}: {e}")
+
+    @mcp.tool()
+    async def list_transaction_attachments(transaction_id: int) -> str:
+        """
+        List all attachments for a transaction.
+
+        Args:
+            transaction_id: The transaction ID
+
+        Returns:
+            JSON array of attachments belonging to the transaction
+        """
+        try:
+            result = await client.get(f"/transactions/{transaction_id}/attachments")
+            return json.dumps(result, indent=2)
+        except Exception as e:
+            logger.error(f"list_transaction_attachments failed: {e}")
+            raise ValueError(
+                f"Failed to list attachments for transaction {transaction_id}: {e}"
+            )
+
+    @mcp.tool()
+    async def assign_attachment_to_transaction(
+        transaction_id: int,
+        attachment_id: int,
+    ) -> str:
+        """
+        Assign an existing attachment to a transaction.
+
+        Args:
+            transaction_id: The transaction ID
+            attachment_id: The attachment ID to assign
+
+        Returns:
+            JSON object with the assigned attachment
+        """
+        try:
+            result = await client.post(
+                f"/transactions/{transaction_id}/attachments",
+                json_data={"attachment_id": attachment_id},
+            )
+            return json.dumps(result, indent=2)
+        except Exception as e:
+            logger.error(f"assign_attachment_to_transaction failed: {e}")
+            raise ValueError(
+                f"Failed to assign attachment {attachment_id} to transaction "
+                f"{transaction_id}: {e}"
+            )
+
+    @mcp.tool()
+    async def unassign_attachment_from_transaction(
+        transaction_id: int,
+        attachment_id: int,
+    ) -> str:
+        """
+        Unassign an attachment from a transaction.
+
+        This does not delete the attachment, it only removes its
+        association from the transaction.
+
+        Args:
+            transaction_id: The transaction ID
+            attachment_id: The attachment ID to unassign
+
+        Returns:
+            Confirmation message
+        """
+        try:
+            await client.delete(
+                f"/transactions/{transaction_id}/attachments/{attachment_id}"
+            )
+            return json.dumps({
+                "unassigned": True,
+                "transaction_id": transaction_id,
+                "attachment_id": attachment_id,
+                "message": "Attachment unassigned from transaction",
+            })
+        except Exception as e:
+            logger.error(f"unassign_attachment_from_transaction failed: {e}")
+            raise ValueError(
+                f"Failed to unassign attachment {attachment_id} from transaction "
+                f"{transaction_id}: {e}"
+            )

@@ -34,7 +34,7 @@ def register_all_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
     register_budgeting_tools(mcp, client)  # 4 tools
     register_institution_tools(mcp, client)  # 5 tools
     register_event_tools(mcp, client)  # 5 tools
-    register_attachment_tools(mcp, client)  # 5 tools
+    register_attachment_tools(mcp, client)  # 8 tools
     register_label_tools(mcp, client)  # 2 tools
     register_utility_tools(mcp, client)  # 2 tools
 
