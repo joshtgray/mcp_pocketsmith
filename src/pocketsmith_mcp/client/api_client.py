@@ -190,6 +190,46 @@ class PocketSmithClient:
         """
         return await self._request("GET", path, params=params)
 
+    async def get_all_pages(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+        per_page: int = 1000,
+        max_pages: int = 100,
+    ) -> list[Any]:
+        """
+        Fetch all pages of a paginated GET endpoint.
+
+        Uses per_page=1000 (PocketSmith max) to minimize requests.
+        Stops when a page returns fewer items than per_page.
+
+        Args:
+            path: API endpoint path
+            params: Query parameters (page/per_page will be overridden)
+            per_page: Items per page (max 1000 for PocketSmith API)
+            max_pages: Safety limit to prevent infinite loops
+
+        Returns:
+            Combined list of all items across all pages
+        """
+        all_items: list[Any] = []
+        page_params = dict(params) if params else {}
+        page_params["per_page"] = per_page
+
+        for page in range(1, max_pages + 1):
+            page_params["page"] = page
+            result = await self.get(path, params=page_params)
+
+            if not isinstance(result, list) or len(result) == 0:
+                break
+
+            all_items.extend(result)
+
+            if len(result) < per_page:
+                break
+
+        return all_items
+
     async def post(
         self,
         path: str,
@@ -224,17 +264,22 @@ class PocketSmithClient:
         """
         return await self._request("PUT", path, json_data=json_data)
 
-    async def delete(self, path: str) -> dict[str, Any] | list[Any]:
+    async def delete(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | list[Any]:
         """
         Make a DELETE request.
 
         Args:
             path: API endpoint path
+            params: Query parameters
 
         Returns:
             Parsed JSON response (usually empty)
         """
-        return await self._request("DELETE", path)
+        return await self._request("DELETE", path, params=params)
 
     async def close(self) -> None:
         """Close the HTTP client."""

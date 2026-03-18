@@ -87,7 +87,7 @@ class TestGetEvent:
         client.get.return_value = sample_event
 
         tool = mcp._tool_manager._tools.get("get_event")
-        result = await tool.fn(event_id=600)
+        result = await tool.fn(event_id="600")
         result_data = json.loads(result)
 
         client.get.assert_called_once_with("/events/600")
@@ -155,22 +155,26 @@ class TestUpdateEvent:
         client.put.return_value = updated
 
         tool = mcp._tool_manager._tools.get("update_event")
-        await tool.fn(event_id=600, amount=-75.00)
+        await tool.fn(event_id="600", behaviour="one", amount=-75.00)
 
         client.put.assert_called_once_with(
             "/events/600",
-            json_data={"amount": -75.00}
+            json_data={"behaviour": "one", "amount": -75.00}
         )
 
     @pytest.mark.asyncio
-    async def test_update_event_no_fields(self, mcp_with_tools):
-        """Test error when no fields provided."""
+    async def test_update_event_behaviour_only(self, mcp_with_tools, sample_event):
+        """Test that update with only behaviour (no optional fields) still works."""
         mcp, client = mcp_with_tools
+        client.put.return_value = sample_event
 
         tool = mcp._tool_manager._tools.get("update_event")
+        await tool.fn(event_id="600", behaviour="all")
 
-        with pytest.raises(ValueError, match="At least one field must be provided"):
-            await tool.fn(event_id=600)
+        client.put.assert_called_once_with(
+            "/events/600",
+            json_data={"behaviour": "all"}
+        )
 
 
 class TestDeleteEvent:
@@ -183,8 +187,136 @@ class TestDeleteEvent:
         client.delete.return_value = None
 
         tool = mcp._tool_manager._tools.get("delete_event")
-        result = await tool.fn(event_id=600)
+        result = await tool.fn(event_id="600", behaviour="one")
         result_data = json.loads(result)
 
-        client.delete.assert_called_once_with("/events/600")
+        client.delete.assert_called_once_with("/events/600", params={"behaviour": "one"})
         assert result_data["deleted"] is True
+
+
+# ── Phase 1 regression tests: behaviour param + event_id type ────────────
+
+
+class TestUpdateEventRequiresBehaviour:
+    """Verify behaviour is a required parameter for update_event."""
+
+    @pytest.mark.asyncio
+    async def test_update_event_requires_behaviour(self, mcp_with_tools, sample_event):
+        """update_event must require behaviour — calls without it should fail."""
+        mcp, client = mcp_with_tools
+        client.put.return_value = sample_event
+
+        tool = mcp._tool_manager._tools.get("update_event")
+        with pytest.raises(TypeError):
+            await tool.fn(event_id="600-1601942400", amount=-75.00)
+
+    @pytest.mark.asyncio
+    async def test_update_event_passes_behaviour_in_body(self, mcp_with_tools, sample_event):
+        """update_event must include behaviour in the request body."""
+        mcp, client = mcp_with_tools
+        updated = {**sample_event, "amount": -75.00}
+        client.put.return_value = updated
+
+        tool = mcp._tool_manager._tools.get("update_event")
+        await tool.fn(event_id="600-1601942400", behaviour="one", amount=-75.00)
+
+        body = client.put.call_args[1]["json_data"]
+        assert body["behaviour"] == "one"
+
+
+class TestDeleteEventRequiresBehaviour:
+    """Verify behaviour is a required parameter for delete_event."""
+
+    @pytest.mark.asyncio
+    async def test_delete_event_requires_behaviour(self, mcp_with_tools):
+        """delete_event must require behaviour — calls without it should fail."""
+        mcp, client = mcp_with_tools
+        client.delete.return_value = {}
+
+        tool = mcp._tool_manager._tools.get("delete_event")
+        with pytest.raises((ValueError, TypeError)):
+            await tool.fn(event_id="600-1601942400")
+
+    @pytest.mark.asyncio
+    async def test_delete_event_passes_behaviour_as_query_param(self, mcp_with_tools):
+        """delete_event must pass behaviour as a query parameter."""
+        mcp, client = mcp_with_tools
+        client.delete.return_value = {}
+
+        tool = mcp._tool_manager._tools.get("delete_event")
+        await tool.fn(event_id="600-1601942400", behaviour="all")
+
+        assert client.delete.call_args[1]["params"]["behaviour"] == "all"
+
+
+class TestEventIdIsString:
+    """Verify event IDs are passed as strings.
+
+    Per OpenAPI spec: type string, e.g. '42-1601942400'.
+    """
+
+    @pytest.mark.asyncio
+    async def test_get_event_accepts_string_id(self, mcp_with_tools, sample_event):
+        mcp, client = mcp_with_tools
+        client.get.return_value = sample_event
+
+        tool = mcp._tool_manager._tools.get("get_event")
+        await tool.fn(event_id="600-1601942400")
+        client.get.assert_called_once_with("/events/600-1601942400")
+
+    @pytest.mark.asyncio
+    async def test_update_event_accepts_string_id(self, mcp_with_tools, sample_event):
+        mcp, client = mcp_with_tools
+        client.put.return_value = sample_event
+
+        tool = mcp._tool_manager._tools.get("update_event")
+        await tool.fn(event_id="600-1601942400", behaviour="one", amount=-75.00)
+        assert client.put.call_args[0][0] == "/events/600-1601942400"
+
+    @pytest.mark.asyncio
+    async def test_delete_event_accepts_string_id(self, mcp_with_tools):
+        mcp, client = mcp_with_tools
+        client.delete.return_value = {}
+
+        tool = mcp._tool_manager._tools.get("delete_event")
+        await tool.fn(event_id="600-1601942400", behaviour="one")
+        assert client.delete.call_args[0][0] == "/events/600-1601942400"
+
+
+class TestBehaviourEnumValues:
+    """Verify only one/forward/all are accepted for behaviour."""
+
+    @pytest.mark.asyncio
+    async def test_update_event_accepts_valid_behaviours(self, mcp_with_tools, sample_event):
+        mcp, client = mcp_with_tools
+        client.put.return_value = sample_event
+
+        tool = mcp._tool_manager._tools.get("update_event")
+        for value in ("one", "forward", "all"):
+            client.put.reset_mock()
+            await tool.fn(event_id="600-1601942400", behaviour=value, amount=-75.00)
+            assert client.put.call_args[1]["json_data"]["behaviour"] == value
+
+    @pytest.mark.asyncio
+    async def test_update_event_rejects_invalid_behaviour(self, mcp_with_tools):
+        mcp, client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("update_event")
+        with pytest.raises(ValueError, match="[Bb]ehaviour"):
+            await tool.fn(event_id="600-1601942400", behaviour="invalid", amount=-75.00)
+
+    @pytest.mark.asyncio
+    async def test_delete_event_accepts_valid_behaviours(self, mcp_with_tools):
+        mcp, client = mcp_with_tools
+        client.delete.return_value = {}
+
+        tool = mcp._tool_manager._tools.get("delete_event")
+        for value in ("one", "forward", "all"):
+            client.delete.reset_mock()
+            await tool.fn(event_id="600-1601942400", behaviour=value)
+
+    @pytest.mark.asyncio
+    async def test_delete_event_rejects_invalid_behaviour(self, mcp_with_tools):
+        mcp, client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("delete_event")
+        with pytest.raises(ValueError, match="[Bb]ehaviour"):
+            await tool.fn(event_id="600-1601942400", behaviour="none")
