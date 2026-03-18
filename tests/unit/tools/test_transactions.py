@@ -33,7 +33,7 @@ class TestListTransactions:
 
     @pytest.mark.asyncio
     async def test_list_transactions_basic(self, mcp_with_tools, sample_transaction):
-        """Test basic transaction listing."""
+        """Test basic transaction listing (default user endpoint)."""
         mcp, client = mcp_with_tools
         client.get.return_value = [sample_transaction]
 
@@ -47,6 +47,101 @@ class TestListTransactions:
         )
         assert len(result_data) == 1
         assert result_data[0]["id"] == sample_transaction["id"]
+
+    @pytest.mark.asyncio
+    async def test_list_transactions_default_no_scope(self, mcp_with_tools, sample_transaction):
+        """Test that default behaviour is preserved when no scoping ID is given."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_transaction]
+
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        result = await tool.fn(user_id=123, search="coffee", page=2)
+        result_data = json.loads(result)
+
+        client.get.assert_called_once_with(
+            "/users/123/transactions",
+            params={"page": 2, "search": "coffee"}
+        )
+        assert len(result_data) == 1
+
+    @pytest.mark.asyncio
+    async def test_list_transactions_by_account_id(self, mcp_with_tools, sample_transaction):
+        """Test routing to account endpoint when account_id is provided."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_transaction]
+
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        result = await tool.fn(user_id=123, account_id=42, start_date="2024-01-01")
+        result_data = json.loads(result)
+
+        client.get.assert_called_once_with(
+            "/accounts/42/transactions",
+            params={"page": 1, "start_date": "2024-01-01"}
+        )
+        assert len(result_data) == 1
+
+    @pytest.mark.asyncio
+    async def test_list_transactions_by_category_id(self, mcp_with_tools, sample_transaction):
+        """Test routing to category endpoint when category_id is provided."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_transaction]
+
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        result = await tool.fn(user_id=123, category_id="10", search="groceries")
+        result_data = json.loads(result)
+
+        client.get.assert_called_once_with(
+            "/categories/10/transactions",
+            params={"page": 1, "search": "groceries"}
+        )
+        assert len(result_data) == 1
+
+    @pytest.mark.asyncio
+    async def test_list_transactions_by_multiple_category_ids(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """Test routing to category endpoint with comma-separated category IDs."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_transaction]
+
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        result = await tool.fn(user_id=123, category_id="42,43", search="groceries")
+        result_data = json.loads(result)
+
+        client.get.assert_called_once_with(
+            "/categories/42,43/transactions",
+            params={"page": 1, "search": "groceries"}
+        )
+        assert len(result_data) == 1
+
+    @pytest.mark.asyncio
+    async def test_list_transactions_by_transaction_account_id(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """Test routing to transaction account endpoint when transaction_account_id is provided."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_transaction]
+
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        result = await tool.fn(
+            user_id=123, transaction_account_id=99, needs_review=True
+        )
+        result_data = json.loads(result)
+
+        client.get.assert_called_once_with(
+            "/transaction_accounts/99/transactions",
+            params={"page": 1, "needs_review": 1}
+        )
+        assert len(result_data) == 1
+
+    @pytest.mark.asyncio
+    async def test_list_transactions_mutual_exclusion(self, mcp_with_tools):
+        """Test that providing multiple scoping IDs raises an error."""
+        mcp, client = mcp_with_tools
+
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        with pytest.raises(ValueError, match="Only one .* at a time"):
+            await tool.fn(user_id=123, account_id=42, category_id="10")
 
     @pytest.mark.asyncio
     async def test_list_transactions_specific_page(self, mcp_with_tools, sample_transaction):

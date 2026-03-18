@@ -25,12 +25,19 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         needs_review: bool = False,
         transaction_type: str | None = None,
         page: int = 1,
+        account_id: int | None = None,
+        category_id: str | None = None,
+        transaction_account_id: int | None = None,
     ) -> str:
         """
-        List transactions for a user with optional filtering.
+        List transactions with optional filtering.
+
+        By default lists transactions for a user. Provide exactly one of
+        account_id, category_id, or transaction_account_id to scope the
+        listing to that resource instead.
 
         Args:
-            user_id: PocketSmith user ID
+            user_id: PocketSmith user ID (used when no scoping ID is given)
             start_date: Filter transactions on/after date (YYYY-MM-DD)
             end_date: Filter transactions on/before date (YYYY-MM-DD)
             updated_since: Filter by last update time (ISO 8601)
@@ -39,11 +46,39 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             needs_review: Only show transactions needing review
             transaction_type: Filter by type ("debit" or "credit")
             page: Page number for pagination (default: 1)
+            account_id: Scope to an account
+            category_id: Scope to one or more categories (comma-separated IDs, e.g. "42" or "42,43")
+            transaction_account_id: Scope to a transaction account
 
         Returns:
             JSON array of transactions
         """
         try:
+            # Validate mutual exclusion of scoping parameters
+            scope_params = {
+                "account_id": account_id,
+                "category_id": category_id,
+                "transaction_account_id": transaction_account_id,
+            }
+            provided = {k: v for k, v in scope_params.items() if v is not None}
+            if len(provided) > 1:
+                names = ", ".join(provided.keys())
+                raise ValueError(
+                    f"Only one of account_id, category_id, or "
+                    f"transaction_account_id may be provided at a time "
+                    f"(got {names})"
+                )
+
+            # Determine endpoint
+            if account_id is not None:
+                endpoint = f"/accounts/{account_id}/transactions"
+            elif category_id is not None:
+                endpoint = f"/categories/{category_id}/transactions"
+            elif transaction_account_id is not None:
+                endpoint = f"/transaction_accounts/{transaction_account_id}/transactions"
+            else:
+                endpoint = f"/users/{user_id}/transactions"
+
             params: dict[str, Any] = {"page": page}
             if start_date:
                 params["start_date"] = start_date
@@ -60,8 +95,10 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             if transaction_type:
                 params["type"] = transaction_type
 
-            result = await client.get(f"/users/{user_id}/transactions", params=params)
+            result = await client.get(endpoint, params=params)
             return json.dumps(result, indent=2)
+        except ValueError:
+            raise
         except Exception as e:
             logger.error(f"list_transactions failed: {e}")
             raise ValueError(f"Failed to list transactions: {e}")
