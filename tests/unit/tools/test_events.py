@@ -14,6 +14,7 @@ def mock_client():
     """Create a mock PocketSmith client."""
     client = MagicMock()
     client.get = AsyncMock()
+    client.get_all_pages = AsyncMock()
     client.post = AsyncMock()
     client.put = AsyncMock()
     client.delete = AsyncMock()
@@ -49,7 +50,7 @@ class TestListEvents:
     async def test_list_events_basic(self, mcp_with_tools, sample_event):
         """Test basic event listing with required date params."""
         mcp, client = mcp_with_tools
-        client.get.return_value = [sample_event]
+        client.get_all_pages.return_value = [sample_event]
 
         tool = mcp._tool_manager._tools.get("list_events")
         result = await tool.fn(
@@ -59,7 +60,7 @@ class TestListEvents:
         )
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with(
+        client.get_all_pages.assert_called_once_with(
             "/users/123/events",
             params={"start_date": "2024-01-01", "end_date": "2024-12-31"}
         )
@@ -79,7 +80,7 @@ class TestListEvents:
     async def test_list_events_with_date_filter(self, mcp_with_tools, sample_event):
         """Test event listing with date filter."""
         mcp, client = mcp_with_tools
-        client.get.return_value = [sample_event]
+        client.get_all_pages.return_value = [sample_event]
 
         tool = mcp._tool_manager._tools.get("list_events")
         await tool.fn(
@@ -88,10 +89,31 @@ class TestListEvents:
             end_date="2024-12-31"
         )
 
-        client.get.assert_called_once_with(
+        client.get_all_pages.assert_called_once_with(
             "/users/123/events",
             params={"start_date": "2024-01-01", "end_date": "2024-12-31"}
         )
+
+    @pytest.mark.asyncio
+    async def test_list_events_with_scenario_id(self, mcp_with_tools, sample_event):
+        """Test event listing scoped to a scenario uses get_all_pages."""
+        mcp, client = mcp_with_tools
+        client.get_all_pages.return_value = [sample_event]
+
+        tool = mcp._tool_manager._tools.get("list_events")
+        result = await tool.fn(
+            user_id=123,
+            start_date="2024-01-01",
+            end_date="2024-12-31",
+            scenario_id=200,
+        )
+        result_data = json.loads(result)
+
+        client.get_all_pages.assert_called_once_with(
+            "/scenarios/200/events",
+            params={"start_date": "2024-01-01", "end_date": "2024-12-31"}
+        )
+        assert len(result_data) == 1
 
 
 class TestGetEvent:
@@ -310,7 +332,7 @@ class TestListEventsByScenario:
     async def test_list_events_by_scenario_id(self, mcp_with_tools, sample_event):
         """When scenario_id is provided, route to /scenarios/{id}/events."""
         mcp, client = mcp_with_tools
-        client.get.return_value = [sample_event]
+        client.get_all_pages.return_value = [sample_event]
 
         tool = mcp._tool_manager._tools.get("list_events")
         result = await tool.fn(
@@ -321,7 +343,7 @@ class TestListEventsByScenario:
         )
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with(
+        client.get_all_pages.assert_called_once_with(
             "/scenarios/200/events",
             params={"start_date": "2024-01-01", "end_date": "2024-12-31"},
         )
@@ -333,12 +355,12 @@ class TestListEventsByScenario:
     ):
         """Without scenario_id, the default /users/{id}/events endpoint is used."""
         mcp, client = mcp_with_tools
-        client.get.return_value = [sample_event]
+        client.get_all_pages.return_value = [sample_event]
 
         tool = mcp._tool_manager._tools.get("list_events")
         await tool.fn(user_id=123, start_date="2024-01-01", end_date="2024-12-31")
 
-        client.get.assert_called_once_with(
+        client.get_all_pages.assert_called_once_with(
             "/users/123/events",
             params={"start_date": "2024-01-01", "end_date": "2024-12-31"},
         )
@@ -347,12 +369,12 @@ class TestListEventsByScenario:
     async def test_list_events_scenario_id_defaults_to_none(self, mcp_with_tools, sample_event):
         """scenario_id should be optional and default to None."""
         mcp, client = mcp_with_tools
-        client.get.return_value = []
+        client.get_all_pages.return_value = []
 
         tool = mcp._tool_manager._tools.get("list_events")
         # Call without scenario_id — should not raise
         await tool.fn(user_id=123, start_date="2024-01-01", end_date="2024-12-31")
-        assert "/users/123/events" in client.get.call_args[0][0]
+        assert "/users/123/events" in client.get_all_pages.call_args[0][0]
 
 
 class TestBehaviourEnumValues:

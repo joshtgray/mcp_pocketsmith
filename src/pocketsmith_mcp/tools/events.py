@@ -50,7 +50,7 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             else:
                 endpoint = f"/users/{user_id}/events"
 
-            result = await client.get(endpoint, params=params)
+            result = await client.get_all_pages(endpoint, params=params)
             return json.dumps(result, indent=2)
         except Exception as e:
             logger.error(f"list_events failed: {e}")
