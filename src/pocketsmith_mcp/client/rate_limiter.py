@@ -92,6 +92,8 @@ class RateLimiter:
         # Calculate tokens to add based on elapsed time
         tokens_to_add = (elapsed / self.interval_seconds) * self.tokens_per_interval
         self.tokens = min(self.max_tokens, self.tokens + tokens_to_add)
+        # Clamp to prevent negative drift and round to avoid accumulated precision errors
+        self.tokens = round(max(0.0, self.tokens), 9)
         self.last_refill = now
 
     @property
