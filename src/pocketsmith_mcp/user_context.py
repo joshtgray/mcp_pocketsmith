@@ -23,4 +23,12 @@ class UserContext:
 
     @user_id.setter
     def user_id(self, value: int) -> None:
+        if self._user_id != 0:
+            raise RuntimeError(
+                "user_id has already been set and cannot be changed."
+            )
+        if not isinstance(value, int) or value <= 0:
+            raise ValueError(
+                f"user_id must be a positive integer, got {value}"
+            )
         self._user_id = value
