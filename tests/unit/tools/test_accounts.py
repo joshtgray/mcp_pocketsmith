@@ -121,3 +121,39 @@ class TestDeleteAccount:
         client.delete.assert_called_once_with("/accounts/456")
         assert result_data["deleted"] is True
         assert result_data["account_id"] == 456
+
+
+class TestAccountIdValidation:
+    """Tests for ID validation on account tools."""
+
+    @pytest.mark.asyncio
+    async def test_get_account_zero_id(self, mcp_with_tools):
+        """get_account should reject zero ID."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("get_account")
+        with pytest.raises(ValueError, match="account_id must be a positive integer"):
+            await tool.fn(account_id=0)
+
+    @pytest.mark.asyncio
+    async def test_get_account_negative_id(self, mcp_with_tools):
+        """get_account should reject negative ID."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("get_account")
+        with pytest.raises(ValueError, match="account_id must be a positive integer"):
+            await tool.fn(account_id=-1)
+
+    @pytest.mark.asyncio
+    async def test_update_account_zero_id(self, mcp_with_tools):
+        """update_account should reject zero ID."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("update_account")
+        with pytest.raises(ValueError, match="account_id must be a positive integer"):
+            await tool.fn(account_id=0, title="Test")
+
+    @pytest.mark.asyncio
+    async def test_delete_account_negative_id(self, mcp_with_tools):
+        """delete_account should reject negative ID."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("delete_account")
+        with pytest.raises(ValueError, match="account_id must be a positive integer"):
+            await tool.fn(account_id=-1)
