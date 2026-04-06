@@ -6,6 +6,7 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.client.api_client import PocketSmithClient
+from pocketsmith_mcp.errors import validate_id
 from pocketsmith_mcp.logger import get_logger
 from pocketsmith_mcp.user_context import UserContext
 
@@ -47,6 +48,7 @@ def register_category_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: U
             color, and settings
         """
         try:
+            validate_id(category_id, "category_id")
             result = await client.get(f"/categories/{category_id}")
             return json.dumps(result, indent=2)
         except Exception as e:
@@ -89,6 +91,8 @@ def register_category_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: U
             if colour is not None:
                 body["colour"] = colour
             if parent_id is not None:
+                validate_id(parent_id, "parent_id")
+            if parent_id is not None:
                 body["parent_id"] = parent_id
             if refund_behaviour is not None:
                 body["refund_behaviour"] = refund_behaviour
@@ -127,6 +131,7 @@ def register_category_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: U
             JSON object with updated category
         """
         try:
+            validate_id(category_id, "category_id")
             body: dict[str, Any] = {}
             if title is not None:
                 body["title"] = title
@@ -168,6 +173,7 @@ def register_category_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: U
             Confirmation message
         """
         try:
+            validate_id(category_id, "category_id")
             await client.delete(f"/categories/{category_id}")
             return json.dumps({
                 "deleted": True,

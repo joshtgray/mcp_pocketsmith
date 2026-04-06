@@ -5,6 +5,7 @@ import json
 from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.client.api_client import PocketSmithClient
+from pocketsmith_mcp.errors import validate_id
 from pocketsmith_mcp.logger import get_logger
 from pocketsmith_mcp.user_context import UserContext
 
@@ -45,6 +46,7 @@ def register_institution_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             JSON object with institution details
         """
         try:
+            validate_id(institution_id, "institution_id")
             result = await client.get(f"/institutions/{institution_id}")
             return json.dumps(result, indent=2)
         except Exception as e:
@@ -98,6 +100,7 @@ def register_institution_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             JSON object with updated institution
         """
         try:
+            validate_id(institution_id, "institution_id")
             body = {}
             if title is not None:
                 body["title"] = title
@@ -128,6 +131,7 @@ def register_institution_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             Confirmation message
         """
         try:
+            validate_id(institution_id, "institution_id")
             await client.delete(f"/institutions/{institution_id}")
             return json.dumps({
                 "deleted": True,

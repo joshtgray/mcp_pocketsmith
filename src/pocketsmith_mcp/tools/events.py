@@ -6,6 +6,7 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.client.api_client import PocketSmithClient
+from pocketsmith_mcp.errors import validate_id
 from pocketsmith_mcp.logger import get_logger
 from pocketsmith_mcp.user_context import UserContext
 
@@ -59,6 +60,7 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
             repeat settings, and associated category/scenario
         """
         try:
+            validate_id(event_id, "event_id")
             result = await client.get(f"/events/{event_id}")
             return json.dumps(result, indent=2)
         except Exception as e:
@@ -97,6 +99,8 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
             JSON object with created event
         """
         try:
+            validate_id(scenario_id, "scenario_id")
+            validate_id(category_id, "category_id")
             body: dict[str, Any] = {
                 "category_id": category_id,
                 "amount": amount,
@@ -143,6 +147,7 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
             JSON object with updated event
         """
         try:
+            validate_id(event_id, "event_id")
             body: dict[str, Any] = {}
             if category_id is not None:
                 body["category_id"] = category_id
@@ -183,6 +188,7 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
             Confirmation message
         """
         try:
+            validate_id(event_id, "event_id")
             await client.delete(f"/events/{event_id}")
             return json.dumps({
                 "deleted": True,

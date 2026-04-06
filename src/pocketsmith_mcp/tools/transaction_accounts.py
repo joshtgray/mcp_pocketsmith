@@ -6,6 +6,7 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.client.api_client import PocketSmithClient
+from pocketsmith_mcp.errors import validate_id
 from pocketsmith_mcp.logger import get_logger
 from pocketsmith_mcp.user_context import UserContext
 
@@ -58,6 +59,7 @@ def register_transaction_account_tools(mcp: FastMCP, client: PocketSmithClient, 
             currency, and institution information
         """
         try:
+            validate_id(transaction_account_id, "transaction_account_id")
             result = await client.get(f"/transaction_accounts/{transaction_account_id}")
             return json.dumps(result, indent=2)
         except Exception as e:
@@ -88,6 +90,7 @@ def register_transaction_account_tools(mcp: FastMCP, client: PocketSmithClient, 
             JSON object with updated transaction account details
         """
         try:
+            validate_id(transaction_account_id, "transaction_account_id")
             body: dict[str, Any] = {}
             if name is not None:
                 body["name"] = name
