@@ -52,13 +52,33 @@ def register_bulk_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> 
         errors = []
 
         for update in updates:
-            transaction_id = update.get("transaction_id")
-            if not transaction_id:
+            raw_id = update.get("transaction_id")
+            if not raw_id and raw_id != 0:
                 skipped += 1
                 results.append({
                     "transaction_id": None,
                     "status": "skipped",
                     "message": "Missing transaction_id",
+                })
+                continue
+
+            try:
+                transaction_id = int(raw_id)
+            except (ValueError, TypeError):
+                skipped += 1
+                results.append({
+                    "transaction_id": raw_id,
+                    "status": "skipped",
+                    "message": f"Invalid transaction_id: must be a numeric value, got {raw_id!r}",
+                })
+                continue
+
+            if transaction_id <= 0:
+                skipped += 1
+                results.append({
+                    "transaction_id": transaction_id,
+                    "status": "skipped",
+                    "message": f"transaction_id must be a positive integer, got {transaction_id}",
                 })
                 continue
 

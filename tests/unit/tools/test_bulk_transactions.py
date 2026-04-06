@@ -170,3 +170,58 @@ class TestBulkUpdateTransactions:
             "is_transfer": True,
             "needs_review": False,
         }
+
+
+class TestBulkIdValidation:
+    """Tests for ID validation in bulk updates."""
+
+    @pytest.mark.asyncio
+    async def test_negative_transaction_id_skipped(self, mcp_with_tools):
+        """Negative transaction_id should be skipped with error."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("bulk_update_transactions")
+        result = await tool.fn(
+            updates=[{"transaction_id": -1, "category_id": 10}],
+            dry_run=True,
+        )
+        data = json.loads(result)
+        assert data["summary"]["skipped"] == 1
+        assert "positive integer" in data["results"][0]["message"]
+
+    @pytest.mark.asyncio
+    async def test_zero_transaction_id_skipped(self, mcp_with_tools):
+        """Zero transaction_id should be skipped with error."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("bulk_update_transactions")
+        result = await tool.fn(
+            updates=[{"transaction_id": 0, "category_id": 10}],
+            dry_run=True,
+        )
+        data = json.loads(result)
+        assert data["summary"]["skipped"] == 1
+
+    @pytest.mark.asyncio
+    async def test_string_transaction_id_coerced(self, mcp_with_tools):
+        """String transaction_id that's a valid int should be coerced."""
+        mcp, client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("bulk_update_transactions")
+        result = await tool.fn(
+            updates=[{"transaction_id": "42", "category_id": 10}],
+            dry_run=True,
+        )
+        data = json.loads(result)
+        assert data["summary"]["successful"] == 1
+        assert data["results"][0]["transaction_id"] == 42
+
+    @pytest.mark.asyncio
+    async def test_non_numeric_transaction_id_skipped(self, mcp_with_tools):
+        """Non-numeric transaction_id should be skipped."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("bulk_update_transactions")
+        result = await tool.fn(
+            updates=[{"transaction_id": "abc", "category_id": 10}],
+            dry_run=True,
+        )
+        data = json.loads(result)
+        assert data["summary"]["skipped"] == 1
+        assert "Invalid transaction_id" in data["results"][0]["message"]
