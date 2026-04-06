@@ -249,3 +249,39 @@ class TestDeleteTransaction:
         client.delete.assert_called_once_with("/transactions/456")
         assert result_data["deleted"] is True
         assert result_data["transaction_id"] == 456
+
+
+class TestTransactionIdValidation:
+    """Tests for ID validation on transaction tools."""
+
+    @pytest.mark.asyncio
+    async def test_get_transaction_zero_id(self, mcp_with_tools):
+        """get_transaction should reject zero ID."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("get_transaction")
+        with pytest.raises(ValueError, match="transaction_id must be a positive integer"):
+            await tool.fn(transaction_id=0)
+
+    @pytest.mark.asyncio
+    async def test_create_transaction_zero_account_id(self, mcp_with_tools):
+        """create_transaction should reject zero transaction_account_id."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("create_transaction")
+        with pytest.raises(ValueError, match="transaction_account_id must be a positive integer"):
+            await tool.fn(transaction_account_id=0, payee="Test", amount=-5, date="2024-01-01")
+
+    @pytest.mark.asyncio
+    async def test_update_transaction_negative_id(self, mcp_with_tools):
+        """update_transaction should reject negative ID."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("update_transaction")
+        with pytest.raises(ValueError, match="transaction_id must be a positive integer"):
+            await tool.fn(transaction_id=-1, payee="Test")
+
+    @pytest.mark.asyncio
+    async def test_delete_transaction_zero_id(self, mcp_with_tools):
+        """delete_transaction should reject zero ID."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("delete_transaction")
+        with pytest.raises(ValueError, match="transaction_id must be a positive integer"):
+            await tool.fn(transaction_id=0)

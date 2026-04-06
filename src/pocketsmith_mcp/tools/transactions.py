@@ -6,6 +6,7 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.client.api_client import PocketSmithClient
+from pocketsmith_mcp.errors import validate_id
 from pocketsmith_mcp.logger import get_logger
 from pocketsmith_mcp.user_context import UserContext
 
@@ -82,6 +83,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             category, labels, and account information
         """
         try:
+            validate_id(transaction_id, "transaction_id")
             result = await client.get(f"/transactions/{transaction_id}")
             return json.dumps(result, indent=2)
         except Exception as e:
@@ -122,6 +124,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             JSON object with created transaction
         """
         try:
+            validate_id(transaction_account_id, "transaction_account_id")
             body = {
                 "payee": payee,
                 "amount": amount,
@@ -183,6 +186,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             JSON object with updated transaction
         """
         try:
+            validate_id(transaction_id, "transaction_id")
             body: dict[str, Any] = {}
             if payee is not None:
                 body["payee"] = payee
@@ -229,6 +233,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             Confirmation message
         """
         try:
+            validate_id(transaction_id, "transaction_id")
             await client.delete(f"/transactions/{transaction_id}")
             return json.dumps({
                 "deleted": True,
