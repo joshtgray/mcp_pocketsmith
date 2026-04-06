@@ -32,7 +32,10 @@ class APIError(PocketSmithError):
     def __str__(self) -> str:
         base = f"[HTTP {self.status_code}] {self.message}"
         if self.response_body:
-            return f"{base}: {self.response_body}"
+            body = self.response_body
+            if len(body) > 200:
+                body = body[:200] + "... (truncated)"
+            return f"{base}: {body}"
         return base
 
 
@@ -85,3 +88,17 @@ class TimeoutError(PocketSmithError):
         self.timeout_seconds = timeout_seconds
         details = f"Timeout: {timeout_seconds}s" if timeout_seconds else None
         super().__init__(message, details)
+
+
+def validate_id(value: int, field_name: str) -> None:
+    """Validate that an ID is a positive integer.
+
+    Args:
+        value: The ID value to validate.
+        field_name: Name of the field (for error messages).
+
+    Raises:
+        ValidationError: If value is not a positive integer.
+    """
+    if value <= 0:
+        raise ValidationError(f"{field_name} must be a positive integer, got {value}", field=field_name)
