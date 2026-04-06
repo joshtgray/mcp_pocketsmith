@@ -8,16 +8,23 @@ import pytest
 from pocketsmith_mcp.server import create_server
 
 
+def _mock_config(**overrides):
+    """Create a mock config with correct attribute names."""
+    defaults = {
+        "api_key": "test_key",
+        "api_timeout": 30.0,
+        "max_retries": 3,
+        "rate_limit_per_minute": 60,
+    }
+    defaults.update(overrides)
+    return MagicMock(**defaults)
+
+
 @pytest.fixture
 def server():
     """Create a server instance for testing."""
     with patch("pocketsmith_mcp.server.get_config") as mock_config:
-        mock_config.return_value = MagicMock(
-            api_key="test_key",
-            timeout=30.0,
-            max_retries=3,
-            rate_limit_per_minute=60
-        )
+        mock_config.return_value = _mock_config()
         yield create_server()
 
 
@@ -83,6 +90,16 @@ class TestBudgetingToolsIntegration:
         for tool_name in tools:
             tool = server._tool_manager._tools.get(tool_name)
             assert tool is not None, f"Tool {tool_name} not found"
+
+
+class TestBulkToolsIntegration:
+    """Integration tests for bulk tools."""
+
+    @pytest.mark.asyncio
+    async def test_bulk_update_transactions_exists(self, server):
+        """Test bulk_update_transactions tool is registered."""
+        tool = server._tool_manager._tools.get("bulk_update_transactions")
+        assert tool is not None
 
 
 class TestToolDocumentation:

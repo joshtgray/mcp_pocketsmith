@@ -7,9 +7,19 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from pocketsmith_mcp.user_context import UserContext
+
 # Set test environment variables before importing modules
 os.environ["POCKETSMITH_API_KEY"] = "test_api_key_12345"
 os.environ["DEBUG"] = "true"
+
+TEST_USER_ID = 42
+
+
+@pytest.fixture
+def user_ctx() -> UserContext:
+    """Provide a UserContext with a pre-set test user ID."""
+    return UserContext(user_id=TEST_USER_ID)
 
 
 @pytest.fixture

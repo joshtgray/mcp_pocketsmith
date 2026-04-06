@@ -21,10 +21,10 @@ def mock_client():
 
 
 @pytest.fixture
-def mcp_with_tools(mock_client):
+def mcp_with_tools(mock_client, user_ctx):
     """Create FastMCP instance with event tools registered."""
     mcp = FastMCP("test-pocketsmith")
-    register_event_tools(mcp, mock_client)
+    register_event_tools(mcp, mock_client, user_ctx)
     return mcp, mock_client
 
 
@@ -52,10 +52,10 @@ class TestListEvents:
         client.get.return_value = [sample_event]
 
         tool = mcp._tool_manager._tools.get("list_events")
-        result = await tool.fn(user_id=123)
+        result = await tool.fn()
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with("/users/123/events", params={})
+        client.get.assert_called_once_with("/users/42/events", params={})
         assert len(result_data) == 1
 
     @pytest.mark.asyncio
@@ -66,13 +66,12 @@ class TestListEvents:
 
         tool = mcp._tool_manager._tools.get("list_events")
         await tool.fn(
-            user_id=123,
             start_date="2024-01-01",
             end_date="2024-12-31"
         )
 
         client.get.assert_called_once_with(
-            "/users/123/events",
+            "/users/42/events",
             params={"start_date": "2024-01-01", "end_date": "2024-12-31"}
         )
 

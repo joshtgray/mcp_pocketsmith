@@ -7,34 +7,30 @@ from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.client.api_client import PocketSmithClient
 from pocketsmith_mcp.logger import get_logger
+from pocketsmith_mcp.user_context import UserContext
 
 logger = get_logger("tools.transaction_accounts")
 
 
-def register_transaction_account_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
+def register_transaction_account_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
     """Register transaction account-related MCP tools."""
 
     @mcp.tool()
-    async def list_transaction_accounts(user_id: int) -> str:
+    async def list_transaction_accounts() -> str:
         """
-        List all transaction accounts for a user.
+        List all transaction accounts.
 
         Transaction accounts are the actual bank accounts/feeds within
         a parent account. Each transaction account holds the transaction
         history and current balance.
 
-        Args:
-            user_id: The PocketSmith user ID
-
         Returns:
             JSON array of transaction accounts
         """
         try:
-            # Get all accounts and extract transaction accounts
-            accounts_result = await client.get(f"/users/{user_id}/accounts")
+            accounts_result = await client.get(f"/users/{user_ctx.user_id}/accounts")
             transaction_accounts: list[dict[str, Any]] = []
 
-            # accounts_result is a list of account dictionaries
             if isinstance(accounts_result, list):
                 for account in accounts_result:
                     if isinstance(account, dict) and "transaction_accounts" in account:

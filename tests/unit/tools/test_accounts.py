@@ -20,10 +20,10 @@ def mock_client():
 
 
 @pytest.fixture
-def mcp_with_tools(mock_client):
+def mcp_with_tools(mock_client, user_ctx):
     """Create FastMCP instance with account tools registered."""
     mcp = FastMCP("test-pocketsmith")
-    register_account_tools(mcp, mock_client)
+    register_account_tools(mcp, mock_client, user_ctx)
     return mcp, mock_client
 
 
@@ -37,10 +37,10 @@ class TestListAccounts:
         client.get.return_value = [sample_account]
 
         tool = mcp._tool_manager._tools.get("list_accounts")
-        result = await tool.fn(user_id=123)
+        result = await tool.fn()
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with("/users/123/accounts")
+        client.get.assert_called_once_with("/users/42/accounts")
         assert len(result_data) == 1
         assert result_data[0]["id"] == sample_account["id"]
 
@@ -53,7 +53,7 @@ class TestListAccounts:
         tool = mcp._tool_manager._tools.get("list_accounts")
 
         with pytest.raises(ValueError, match="Failed to list accounts"):
-            await tool.fn(user_id=123)
+            await tool.fn()
 
 
 class TestGetAccount:

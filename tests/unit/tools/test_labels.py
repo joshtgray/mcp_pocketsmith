@@ -18,10 +18,10 @@ def mock_client():
 
 
 @pytest.fixture
-def mcp_with_tools(mock_client):
+def mcp_with_tools(mock_client, user_ctx):
     """Create FastMCP instance with label tools registered."""
     mcp = FastMCP("test-pocketsmith")
-    register_label_tools(mcp, mock_client)
+    register_label_tools(mcp, mock_client, user_ctx)
     return mcp, mock_client
 
 
@@ -36,10 +36,10 @@ class TestListLabels:
         client.get.return_value = labels
 
         tool = mcp._tool_manager._tools.get("list_labels")
-        result = await tool.fn(user_id=123)
+        result = await tool.fn()
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with("/users/123/labels")
+        client.get.assert_called_once_with("/users/42/labels")
         assert len(result_data) == 3
         assert "groceries" in result_data
 
@@ -50,7 +50,7 @@ class TestListLabels:
         client.get.return_value = []
 
         tool = mcp._tool_manager._tools.get("list_labels")
-        result = await tool.fn(user_id=123)
+        result = await tool.fn()
         result_data = json.loads(result)
 
         assert result_data == []
@@ -64,7 +64,7 @@ class TestListLabels:
         tool = mcp._tool_manager._tools.get("list_labels")
 
         with pytest.raises(ValueError, match="Failed to list labels"):
-            await tool.fn(user_id=123)
+            await tool.fn()
 
 
 class TestListSavedSearches:
@@ -81,10 +81,10 @@ class TestListSavedSearches:
         client.get.return_value = saved_searches
 
         tool = mcp._tool_manager._tools.get("list_saved_searches")
-        result = await tool.fn(user_id=123)
+        result = await tool.fn()
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with("/users/123/saved_searches")
+        client.get.assert_called_once_with("/users/42/saved_searches")
         assert len(result_data) == 2
 
     @pytest.mark.asyncio
@@ -94,7 +94,7 @@ class TestListSavedSearches:
         client.get.return_value = []
 
         tool = mcp._tool_manager._tools.get("list_saved_searches")
-        result = await tool.fn(user_id=123)
+        result = await tool.fn()
         result_data = json.loads(result)
 
         assert result_data == []
@@ -108,4 +108,4 @@ class TestListSavedSearches:
         tool = mcp._tool_manager._tools.get("list_saved_searches")
 
         with pytest.raises(ValueError, match="Failed to list saved searches"):
-            await tool.fn(user_id=123)
+            await tool.fn()

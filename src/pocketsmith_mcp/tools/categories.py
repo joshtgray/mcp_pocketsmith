@@ -7,30 +7,28 @@ from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.client.api_client import PocketSmithClient
 from pocketsmith_mcp.logger import get_logger
+from pocketsmith_mcp.user_context import UserContext
 
 logger = get_logger("tools.categories")
 
 
-def register_category_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
+def register_category_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
     """Register category-related MCP tools."""
 
     @mcp.tool()
-    async def list_categories(user_id: int) -> str:
+    async def list_categories() -> str:
         """
-        List all categories for a user.
+        List all categories.
 
         Categories are organized in a hierarchy. Each category may have
         a parent and children. Categories can be marked as transfer,
         bill, or roll-up categories.
 
-        Args:
-            user_id: The PocketSmith user ID
-
         Returns:
             JSON array of categories in hierarchical structure
         """
         try:
-            result = await client.get(f"/users/{user_id}/categories")
+            result = await client.get(f"/users/{user_ctx.user_id}/categories")
             return json.dumps(result, indent=2)
         except Exception as e:
             logger.error(f"list_categories failed: {e}")
@@ -57,7 +55,6 @@ def register_category_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
 
     @mcp.tool()
     async def create_category(
-        user_id: int,
         title: str,
         colour: str | None = None,
         parent_id: int | None = None,
@@ -70,7 +67,6 @@ def register_category_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         Create a new category.
 
         Args:
-            user_id: The PocketSmith user ID
             title: Category name
             colour: Category color (hex, e.g., "#4CAF50")
             parent_id: Parent category ID for hierarchy
@@ -97,7 +93,7 @@ def register_category_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             if refund_behaviour is not None:
                 body["refund_behaviour"] = refund_behaviour
 
-            result = await client.post(f"/users/{user_id}/categories", json_data=body)
+            result = await client.post(f"/users/{user_ctx.user_id}/categories", json_data=body)
             return json.dumps(result, indent=2)
         except Exception as e:
             logger.error(f"create_category failed: {e}")

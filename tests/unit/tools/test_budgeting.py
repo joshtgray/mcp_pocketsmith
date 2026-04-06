@@ -19,10 +19,10 @@ def mock_client():
 
 
 @pytest.fixture
-def mcp_with_tools(mock_client):
+def mcp_with_tools(mock_client, user_ctx):
     """Create FastMCP instance with budgeting tools registered."""
     mcp = FastMCP("test-pocketsmith")
-    register_budgeting_tools(mcp, mock_client)
+    register_budgeting_tools(mcp, mock_client, user_ctx)
     return mcp, mock_client
 
 
@@ -41,11 +41,11 @@ class TestGetBudget:
         client.get.return_value = budget_data
 
         tool = mcp._tool_manager._tools.get("get_budget")
-        result = await tool.fn(user_id=123)
+        result = await tool.fn()
         result_data = json.loads(result)
 
         client.get.assert_called_once_with(
-            "/users/123/budget",
+            "/users/42/budget",
             params={"roll_up": 0}
         )
         assert result_data["income"] == 5000.00
@@ -57,10 +57,10 @@ class TestGetBudget:
         client.get.return_value = {"income": 5000.00}
 
         tool = mcp._tool_manager._tools.get("get_budget")
-        await tool.fn(user_id=123, roll_up=True)
+        await tool.fn(roll_up=True)
 
         client.get.assert_called_once_with(
-            "/users/123/budget",
+            "/users/42/budget",
             params={"roll_up": 1}
         )
 
@@ -81,7 +81,6 @@ class TestGetBudgetSummary:
 
         tool = mcp._tool_manager._tools.get("get_budget_summary")
         result = await tool.fn(
-            user_id=123,
             start_date="2024-01-01",
             end_date="2024-01-31",
             period="months",
@@ -107,7 +106,6 @@ class TestGetTrendAnalysis:
 
         tool = mcp._tool_manager._tools.get("get_trend_analysis")
         result = await tool.fn(
-            user_id=123,
             period="months",
             interval=1,
             start_date="2024-01-01",
@@ -128,8 +126,8 @@ class TestClearForecastCache:
         client.delete.return_value = None
 
         tool = mcp._tool_manager._tools.get("clear_forecast_cache")
-        result = await tool.fn(user_id=123)
+        result = await tool.fn()
         result_data = json.loads(result)
 
-        client.delete.assert_called_once_with("/users/123/forecast_cache")
+        client.delete.assert_called_once_with("/users/42/forecast_cache")
         assert result_data["success"] is True

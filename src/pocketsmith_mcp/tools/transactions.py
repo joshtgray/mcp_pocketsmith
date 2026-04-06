@@ -7,16 +7,16 @@ from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.client.api_client import PocketSmithClient
 from pocketsmith_mcp.logger import get_logger
+from pocketsmith_mcp.user_context import UserContext
 
 logger = get_logger("tools.transactions")
 
 
-def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
+def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
     """Register transaction-related MCP tools."""
 
     @mcp.tool()
     async def list_transactions(
-        user_id: int,
         start_date: str | None = None,
         end_date: str | None = None,
         updated_since: str | None = None,
@@ -28,10 +28,9 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         page: int = 1,
     ) -> str:
         """
-        List transactions for a user with optional filtering.
+        List transactions with optional filtering.
 
         Args:
-            user_id: PocketSmith user ID
             start_date: Filter transactions on/after date (YYYY-MM-DD)
             end_date: Filter transactions on/before date (YYYY-MM-DD)
             updated_since: Filter by last update time (ISO 8601)
@@ -64,7 +63,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             if transaction_type:
                 params["type"] = transaction_type
 
-            result = await client.get(f"/users/{user_id}/transactions", params=params)
+            result = await client.get(f"/users/{user_ctx.user_id}/transactions", params=params)
             return json.dumps(result, indent=2)
         except Exception as e:
             logger.error(f"list_transactions failed: {e}")

@@ -6,16 +6,16 @@ from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.client.api_client import PocketSmithClient
 from pocketsmith_mcp.logger import get_logger
+from pocketsmith_mcp.user_context import UserContext
 
 logger = get_logger("tools.budgeting")
 
 
-def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
+def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
     """Register budgeting-related MCP tools."""
 
     @mcp.tool()
     async def get_budget(
-        user_id: int,
         roll_up: bool = False,
     ) -> str:
         """
@@ -25,7 +25,6 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         including category budgets and recurring budget events.
 
         Args:
-            user_id: The PocketSmith user ID
             roll_up: Whether to roll up child category budgets to parents
 
         Returns:
@@ -33,7 +32,7 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         """
         try:
             params = {"roll_up": 1 if roll_up else 0}
-            result = await client.get(f"/users/{user_id}/budget", params=params)
+            result = await client.get(f"/users/{user_ctx.user_id}/budget", params=params)
             return json.dumps(result, indent=2)
         except Exception as e:
             logger.error(f"get_budget failed: {e}")
@@ -41,7 +40,6 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
 
     @mcp.tool()
     async def get_budget_summary(
-        user_id: int,
         start_date: str,
         end_date: str,
         period: str | None = None,
@@ -57,7 +55,6 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         showing over/under budget amounts per category.
 
         Args:
-            user_id: The PocketSmith user ID
             start_date: Analysis start date (YYYY-MM-DD)
             end_date: Analysis end date (YYYY-MM-DD)
             period: Period grouping (weeks, months)
@@ -85,7 +82,7 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             if scenarios:
                 params["scenarios"] = scenarios
 
-            result = await client.get(f"/users/{user_id}/budget_summary", params=params)
+            result = await client.get(f"/users/{user_ctx.user_id}/budget_summary", params=params)
             return json.dumps(result, indent=2)
         except Exception as e:
             logger.error(f"get_budget_summary failed: {e}")
@@ -93,7 +90,6 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
 
     @mcp.tool()
     async def get_trend_analysis(
-        user_id: int,
         start_date: str,
         end_date: str,
         period: str | None = None,
@@ -109,7 +105,6 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         time period, useful for understanding spending habits.
 
         Args:
-            user_id: The PocketSmith user ID
             start_date: Analysis start date (YYYY-MM-DD)
             end_date: Analysis end date (YYYY-MM-DD)
             period: Period grouping (weeks, months)
@@ -137,14 +132,14 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             if scenarios:
                 params["scenarios"] = scenarios
 
-            result = await client.get(f"/users/{user_id}/trend_analysis", params=params)
+            result = await client.get(f"/users/{user_ctx.user_id}/trend_analysis", params=params)
             return json.dumps(result, indent=2)
         except Exception as e:
             logger.error(f"get_trend_analysis failed: {e}")
             raise ValueError(f"Failed to get trend analysis: {e}")
 
     @mcp.tool()
-    async def clear_forecast_cache(user_id: int) -> str:
+    async def clear_forecast_cache() -> str:
         """
         Clear the user's forecast cache.
 
@@ -152,14 +147,11 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         Useful when you've made significant changes to budget
         events or scenarios.
 
-        Args:
-            user_id: The PocketSmith user ID
-
         Returns:
             Confirmation message
         """
         try:
-            await client.delete(f"/users/{user_id}/forecast_cache")
+            await client.delete(f"/users/{user_ctx.user_id}/forecast_cache")
             return json.dumps({
                 "success": True,
                 "message": "Forecast cache cleared. Forecast will be recalculated on next access."

@@ -7,29 +7,27 @@ from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.client.api_client import PocketSmithClient
 from pocketsmith_mcp.logger import get_logger
+from pocketsmith_mcp.user_context import UserContext
 
 logger = get_logger("tools.accounts")
 
 
-def register_account_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
+def register_account_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
     """Register account-related MCP tools."""
 
     @mcp.tool()
-    async def list_accounts(user_id: int) -> str:
+    async def list_accounts() -> str:
         """
-        List all accounts for a user.
+        List all accounts.
 
         Returns all financial accounts including bank accounts, credit cards,
         loans, investments, and other asset/liability accounts.
-
-        Args:
-            user_id: The PocketSmith user ID
 
         Returns:
             JSON array of accounts with their balances and settings
         """
         try:
-            result = await client.get(f"/users/{user_id}/accounts")
+            result = await client.get(f"/users/{user_ctx.user_id}/accounts")
             return json.dumps(result, indent=2)
         except Exception as e:
             logger.error(f"list_accounts failed: {e}")
@@ -68,7 +66,7 @@ def register_account_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         Args:
             account_id: The account ID
             title: Account title/name
-            currency_code: Currency code (e.g., "USD", "NZD")
+            currency_code: Currency code (e.g., "USD", "GBP")
             type: Account type (bank, credits, cash, loans, mortgage, stocks,
                   vehicle, property, insurance, other_asset, other_liability)
             is_net_worth: Whether to include in net worth calculations

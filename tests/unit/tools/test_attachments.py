@@ -21,10 +21,10 @@ def mock_client():
 
 
 @pytest.fixture
-def mcp_with_tools(mock_client):
+def mcp_with_tools(mock_client, user_ctx):
     """Create FastMCP instance with attachment tools registered."""
     mcp = FastMCP("test-pocketsmith")
-    register_attachment_tools(mcp, mock_client)
+    register_attachment_tools(mcp, mock_client, user_ctx)
     return mcp, mock_client
 
 
@@ -50,10 +50,10 @@ class TestListAttachments:
         client.get.return_value = [sample_attachment]
 
         tool = mcp._tool_manager._tools.get("list_attachments")
-        result = await tool.fn(user_id=123)
+        result = await tool.fn()
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with("/users/123/attachments", params={})
+        client.get.assert_called_once_with("/users/42/attachments", params={})
         assert len(result_data) == 1
 
     @pytest.mark.asyncio
@@ -63,10 +63,10 @@ class TestListAttachments:
         client.get.return_value = []
 
         tool = mcp._tool_manager._tools.get("list_attachments")
-        await tool.fn(user_id=123, unassigned=True)
+        await tool.fn(unassigned=True)
 
         client.get.assert_called_once_with(
-            "/users/123/attachments",
+            "/users/42/attachments",
             params={"unassigned": 1}
         )
 
@@ -99,14 +99,13 @@ class TestCreateAttachment:
 
         tool = mcp._tool_manager._tools.get("create_attachment")
         _result = await tool.fn(
-            user_id=123,
             title="Receipt",
             file_name="receipt.pdf",
             file_data="base64encodeddata=="
         )
 
         client.post.assert_called_once_with(
-            "/users/123/attachments",
+            "/users/42/attachments",
             json_data={
                 "title": "Receipt",
                 "file_name": "receipt.pdf",

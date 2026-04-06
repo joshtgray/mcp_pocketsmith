@@ -21,10 +21,10 @@ def mock_client():
 
 
 @pytest.fixture
-def mcp_with_tools(mock_client):
+def mcp_with_tools(mock_client, user_ctx):
     """Create FastMCP instance with category tools registered."""
     mcp = FastMCP("test-pocketsmith")
-    register_category_tools(mcp, mock_client)
+    register_category_tools(mcp, mock_client, user_ctx)
     return mcp, mock_client
 
 
@@ -38,10 +38,10 @@ class TestListCategories:
         client.get.return_value = [sample_category]
 
         tool = mcp._tool_manager._tools.get("list_categories")
-        result = await tool.fn(user_id=123)
+        result = await tool.fn()
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with("/users/123/categories")
+        client.get.assert_called_once_with("/users/42/categories")
         assert len(result_data) == 1
         assert result_data[0]["id"] == sample_category["id"]
 
@@ -74,11 +74,11 @@ class TestCreateCategory:
         client.post.return_value = sample_category
 
         tool = mcp._tool_manager._tools.get("create_category")
-        result = await tool.fn(user_id=123, title="Food & Dining")
+        result = await tool.fn(title="Food & Dining")
         result_data = json.loads(result)
 
         client.post.assert_called_once_with(
-            "/users/123/categories",
+            "/users/42/categories",
             json_data={
                 "title": "Food & Dining",
                 "is_transfer": False,
@@ -95,7 +95,7 @@ class TestCreateCategory:
         client.post.return_value = sample_category
 
         tool = mcp._tool_manager._tools.get("create_category")
-        await tool.fn(user_id=123, title="Coffee", parent_id=50)
+        await tool.fn(title="Coffee", parent_id=50)
 
         client.post.assert_called_once()
         call_args = client.post.call_args
@@ -108,7 +108,7 @@ class TestCreateCategory:
         client.post.return_value = sample_category
 
         tool = mcp._tool_manager._tools.get("create_category")
-        await tool.fn(user_id=123, title="Salary", is_transfer=False, is_bill=False)
+        await tool.fn(title="Salary", is_transfer=False, is_bill=False)
 
         client.post.assert_called_once()
 

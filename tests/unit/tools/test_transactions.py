@@ -21,10 +21,10 @@ def mock_client():
 
 
 @pytest.fixture
-def mcp_with_tools(mock_client):
+def mcp_with_tools(mock_client, user_ctx):
     """Create FastMCP instance with transaction tools registered."""
     mcp = FastMCP("test-pocketsmith")
-    register_transaction_tools(mcp, mock_client)
+    register_transaction_tools(mcp, mock_client, user_ctx)
     return mcp, mock_client
 
 
@@ -38,11 +38,11 @@ class TestListTransactions:
         client.get.return_value = [sample_transaction]
 
         tool = mcp._tool_manager._tools.get("list_transactions")
-        result = await tool.fn(user_id=123)
+        result = await tool.fn()
         result_data = json.loads(result)
 
         client.get.assert_called_once_with(
-            "/users/123/transactions",
+            "/users/42/transactions",
             params={"page": 1}
         )
         assert len(result_data) == 1
@@ -56,13 +56,12 @@ class TestListTransactions:
 
         tool = mcp._tool_manager._tools.get("list_transactions")
         _result = await tool.fn(
-            user_id=123,
             start_date="2024-01-01",
             end_date="2024-01-31"
         )
 
         client.get.assert_called_once_with(
-            "/users/123/transactions",
+            "/users/42/transactions",
             params={
                 "page": 1,
                 "start_date": "2024-01-01",
@@ -77,10 +76,10 @@ class TestListTransactions:
         client.get.return_value = [sample_transaction]
 
         tool = mcp._tool_manager._tools.get("list_transactions")
-        await tool.fn(user_id=123, search="coffee")
+        await tool.fn(search="coffee")
 
         client.get.assert_called_once_with(
-            "/users/123/transactions",
+            "/users/42/transactions",
             params={"page": 1, "search": "coffee"}
         )
 
@@ -91,10 +90,10 @@ class TestListTransactions:
         client.get.return_value = []
 
         tool = mcp._tool_manager._tools.get("list_transactions")
-        await tool.fn(user_id=123, uncategorised=True)
+        await tool.fn(uncategorised=True)
 
         client.get.assert_called_once_with(
-            "/users/123/transactions",
+            "/users/42/transactions",
             params={"page": 1, "uncategorised": 1}
         )
 
@@ -105,10 +104,10 @@ class TestListTransactions:
         client.get.return_value = []
 
         tool = mcp._tool_manager._tools.get("list_transactions")
-        await tool.fn(user_id=123, needs_review=True)
+        await tool.fn(needs_review=True)
 
         client.get.assert_called_once_with(
-            "/users/123/transactions",
+            "/users/42/transactions",
             params={"page": 1, "needs_review": 1}
         )
 

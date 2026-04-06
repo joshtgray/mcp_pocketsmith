@@ -6,26 +6,25 @@ from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.client.api_client import PocketSmithClient
 from pocketsmith_mcp.logger import get_logger
+from pocketsmith_mcp.user_context import UserContext
 
 logger = get_logger("tools.attachments")
 
 
-def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
+def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
     """Register attachment-related MCP tools."""
 
     @mcp.tool()
     async def list_attachments(
-        user_id: int,
         unassigned: bool = False,
     ) -> str:
         """
-        List all attachments for a user.
+        List all attachments.
 
         Attachments are files (receipts, invoices, etc.) that can be
         associated with transactions for record keeping.
 
         Args:
-            user_id: The PocketSmith user ID
             unassigned: Only show attachments not assigned to transactions
 
         Returns:
@@ -36,7 +35,7 @@ def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             if unassigned:
                 params["unassigned"] = 1
 
-            result = await client.get(f"/users/{user_id}/attachments", params=params)
+            result = await client.get(f"/users/{user_ctx.user_id}/attachments", params=params)
             return json.dumps(result, indent=2)
         except Exception as e:
             logger.error(f"list_attachments failed: {e}")
@@ -63,7 +62,6 @@ def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
 
     @mcp.tool()
     async def create_attachment(
-        user_id: int,
         title: str,
         file_name: str,
         file_data: str,
@@ -74,7 +72,6 @@ def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         The file must be provided as base64-encoded data.
 
         Args:
-            user_id: The PocketSmith user ID
             title: Attachment title/description
             file_name: Original file name with extension
             file_data: Base64-encoded file content
@@ -88,7 +85,7 @@ def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
                 "file_name": file_name,
                 "file_data": file_data,
             }
-            result = await client.post(f"/users/{user_id}/attachments", json_data=body)
+            result = await client.post(f"/users/{user_ctx.user_id}/attachments", json_data=body)
             return json.dumps(result, indent=2)
         except Exception as e:
             logger.error(f"create_attachment failed: {e}")
