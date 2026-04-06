@@ -73,7 +73,8 @@ class CircuitBreaker:
     @property
     def failures(self) -> int:
         """Get the current failure count."""
-        return self._failures
+        with self._lock:
+            return self._failures
 
     @property
     def is_closed(self) -> bool:
