@@ -1,10 +1,12 @@
 """Attachment management MCP tools."""
 
+import base64
 import json
 
 from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.client.api_client import PocketSmithClient
+from pocketsmith_mcp.errors import validate_id
 from pocketsmith_mcp.logger import get_logger
 from pocketsmith_mcp.user_context import UserContext
 
@@ -13,6 +15,20 @@ logger = get_logger("tools.attachments")
 
 def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
     """Register attachment-related MCP tools."""
+
+    def _validate_file_upload(file_name: str, file_data: str) -> None:
+        """Validate file upload inputs."""
+        if "/" in file_name or "\\" in file_name:
+            raise ValueError("file_name contains path separator characters")
+        if len(file_name) > 255:
+            raise ValueError("file_name exceeds 255 characters")
+        try:
+            decoded = base64.b64decode(file_data, validate=True)
+        except Exception:
+            raise ValueError("file_data is not valid base64")
+        max_bytes = 10 * 1024 * 1024  # 10MB
+        if len(decoded) > max_bytes:
+            raise ValueError("Decoded file exceeds maximum size of 10MB")
 
     @mcp.tool()
     async def list_attachments(
@@ -54,6 +70,7 @@ def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx:
             for original and variant images
         """
         try:
+            validate_id(attachment_id, "attachment_id")
             result = await client.get(f"/attachments/{attachment_id}")
             return json.dumps(result, indent=2)
         except Exception as e:
@@ -80,6 +97,7 @@ def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx:
             JSON object with created attachment
         """
         try:
+            _validate_file_upload(file_name, file_data)
             body = {
                 "title": title,
                 "file_name": file_name,
@@ -107,6 +125,7 @@ def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx:
             JSON object with updated attachment
         """
         try:
+            validate_id(attachment_id, "attachment_id")
             body = {}
             if title is not None:
                 body["title"] = title
@@ -135,6 +154,7 @@ def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx:
             Confirmation message
         """
         try:
+            validate_id(attachment_id, "attachment_id")
             await client.delete(f"/attachments/{attachment_id}")
             return json.dumps({
                 "deleted": True,

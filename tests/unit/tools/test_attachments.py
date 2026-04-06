@@ -1,5 +1,6 @@
 """Unit tests for attachment MCP tools."""
 
+import base64
 import json
 from unittest.mock import AsyncMock, MagicMock
 
@@ -97,11 +98,12 @@ class TestCreateAttachment:
         mcp, client = mcp_with_tools
         client.post.return_value = sample_attachment
 
+        valid_b64 = base64.b64encode(b"receipt content").decode()
         tool = mcp._tool_manager._tools.get("create_attachment")
         _result = await tool.fn(
             title="Receipt",
             file_name="receipt.pdf",
-            file_data="base64encodeddata=="
+            file_data=valid_b64
         )
 
         client.post.assert_called_once_with(
@@ -109,7 +111,7 @@ class TestCreateAttachment:
             json_data={
                 "title": "Receipt",
                 "file_name": "receipt.pdf",
-                "file_data": "base64encodeddata=="
+                "file_data": valid_b64
             }
         )
 
@@ -158,3 +160,81 @@ class TestDeleteAttachment:
 
         client.delete.assert_called_once_with("/attachments/700")
         assert result_data["deleted"] is True
+
+
+class TestAttachmentValidation:
+    """Tests for input validation on attachment tools."""
+
+    @pytest.mark.asyncio
+    async def test_get_attachment_zero_id(self, mcp_with_tools):
+        """get_attachment should reject zero ID."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("get_attachment")
+        with pytest.raises(ValueError, match="attachment_id must be a positive integer"):
+            await tool.fn(attachment_id=0)
+
+    @pytest.mark.asyncio
+    async def test_delete_attachment_negative_id(self, mcp_with_tools):
+        """delete_attachment should reject negative ID."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("delete_attachment")
+        with pytest.raises(ValueError, match="attachment_id must be a positive integer"):
+            await tool.fn(attachment_id=-1)
+
+    @pytest.mark.asyncio
+    async def test_create_attachment_path_traversal_slash(self, mcp_with_tools):
+        """create_attachment should reject filenames with path separators."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("create_attachment")
+        valid_b64 = base64.b64encode(b"test content").decode()
+        with pytest.raises(ValueError, match="file_name contains path separator"):
+            await tool.fn(title="Test", file_name="../etc/passwd", file_data=valid_b64)
+
+    @pytest.mark.asyncio
+    async def test_create_attachment_path_traversal_backslash(self, mcp_with_tools):
+        """create_attachment should reject filenames with backslash."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("create_attachment")
+        valid_b64 = base64.b64encode(b"test content").decode()
+        with pytest.raises(ValueError, match="file_name contains path separator"):
+            await tool.fn(title="Test", file_name="..\\etc\\passwd", file_data=valid_b64)
+
+    @pytest.mark.asyncio
+    async def test_create_attachment_invalid_base64(self, mcp_with_tools):
+        """create_attachment should reject invalid base64 data."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("create_attachment")
+        with pytest.raises(ValueError, match="file_data is not valid base64"):
+            await tool.fn(title="Test", file_name="test.pdf", file_data="not!valid!base64!!!")
+
+    @pytest.mark.asyncio
+    async def test_create_attachment_oversized(self, mcp_with_tools):
+        """create_attachment should reject files over 10MB."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("create_attachment")
+        big_data = base64.b64encode(b"x" * (11 * 1024 * 1024)).decode()
+        with pytest.raises(ValueError, match="exceeds maximum.*10MB"):
+            await tool.fn(title="Test", file_name="big.bin", file_data=big_data)
+
+    @pytest.mark.asyncio
+    async def test_create_attachment_valid(self, mcp_with_tools, sample_attachment):
+        """create_attachment should accept valid inputs."""
+        mcp, client = mcp_with_tools
+        client.post.return_value = sample_attachment
+        valid_b64 = base64.b64encode(b"test PDF content").decode()
+
+        tool = mcp._tool_manager._tools.get("create_attachment")
+        result = await tool.fn(title="Receipt", file_name="receipt.pdf", file_data=valid_b64)
+
+        data = json.loads(result)
+        assert data["id"] == 700
+        client.post.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_create_attachment_filename_too_long(self, mcp_with_tools):
+        """create_attachment should reject filenames over 255 chars."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("create_attachment")
+        valid_b64 = base64.b64encode(b"test").decode()
+        with pytest.raises(ValueError, match="file_name exceeds 255 characters"):
+            await tool.fn(title="Test", file_name="a" * 256, file_data=valid_b64)
