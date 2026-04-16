@@ -6,7 +6,7 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.client.api_client import PocketSmithClient
-from pocketsmith_mcp.errors import validate_id
+from pocketsmith_mcp.errors import validate_behaviour, validate_event_id, validate_id
 from pocketsmith_mcp.logger import get_logger
 from pocketsmith_mcp.user_context import UserContext
 
@@ -48,19 +48,20 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
             raise ValueError(f"Failed to list events: {e}")
 
     @mcp.tool()
-    async def get_event(event_id: int) -> str:
+    async def get_event(event_id: str) -> str:
         """
         Get details of a specific event.
 
         Args:
-            event_id: The event ID
+            event_id: The event ID (plain integer string like "600" or
+                composite series_id-timestamp like "26074572-1614556800")
 
         Returns:
             JSON object with event details including amount, date,
             repeat settings, and associated category/scenario
         """
         try:
-            validate_id(event_id, "event_id")
+            event_id = validate_event_id(event_id, "event_id")
             result = await client.get(f"/events/{event_id}")
             return json.dumps(result, indent=2)
         except Exception as e:
@@ -121,10 +122,10 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
 
     @mcp.tool()
     async def update_event(
-        event_id: int,
+        event_id: str,
+        behaviour: str = "one",
         category_id: int | None = None,
         amount: float | None = None,
-        date: str | None = None,
         repeat_type: str | None = None,
         repeat_interval: int | None = None,
         note: str | None = None,
@@ -133,11 +134,21 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
         """
         Update an event.
 
+        For recurring events, the behaviour parameter controls which
+        occurrences are updated.
+
+        Note: Date changes are not supported by the PocketSmith API via
+        PUT. To change an event's date, delete the event and recreate it
+        with the desired date.
+
         Args:
-            event_id: The event ID to update
+            event_id: The event ID (plain integer string like "600" or
+                composite series_id-timestamp like "26074572-1614556800")
+            behaviour: Which occurrences to update: "one" (default,
+                this instance only), "forward" (this and future), or
+                "all" (all occurrences in the series)
             category_id: New category ID
             amount: New amount
-            date: New date (YYYY-MM-DD)
             repeat_type: New repeat frequency
             repeat_interval: New repeat interval
             note: New note
@@ -147,14 +158,13 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
             JSON object with updated event
         """
         try:
-            validate_id(event_id, "event_id")
+            event_id = validate_event_id(event_id, "event_id")
+            behaviour = validate_behaviour(behaviour, "behaviour")
             body: dict[str, Any] = {}
             if category_id is not None:
                 body["category_id"] = category_id
             if amount is not None:
                 body["amount"] = amount
-            if date is not None:
-                body["date"] = date
             if repeat_type is not None:
                 body["repeat_type"] = repeat_type
             if repeat_interval is not None:
@@ -167,6 +177,8 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
             if not body:
                 raise ValueError("At least one field must be provided for update")
 
+            body["behaviour"] = behaviour
+
             result = await client.put(f"/events/{event_id}", json_data=body)
             return json.dumps(result, indent=2)
         except Exception as e:
@@ -174,22 +186,27 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
             raise ValueError(f"Failed to update event {event_id}: {e}")
 
     @mcp.tool()
-    async def delete_event(event_id: int) -> str:
+    async def delete_event(event_id: str, behaviour: str = "one") -> str:
         """
         Delete an event.
 
-        NOTE: For recurring events, this deletes only this specific
-        occurrence, not the entire series.
+        For recurring events, the behaviour parameter controls which
+        occurrences are deleted.
 
         Args:
-            event_id: The event ID to delete
+            event_id: The event ID (plain integer string like "600" or
+                composite series_id-timestamp like "26074572-1614556800")
+            behaviour: Which occurrences to delete: "one" (default,
+                this instance only), "forward" (this and future), or
+                "all" (all occurrences in the series)
 
         Returns:
             Confirmation message
         """
         try:
-            validate_id(event_id, "event_id")
-            await client.delete(f"/events/{event_id}")
+            event_id = validate_event_id(event_id, "event_id")
+            behaviour = validate_behaviour(behaviour, "behaviour")
+            await client.delete(f"/events/{event_id}", params={"behaviour": behaviour})
             return json.dumps({
                 "deleted": True,
                 "event_id": event_id,

@@ -125,20 +125,18 @@ def register_account_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: Us
 
     @mcp.tool()
     async def create_account(
-        user_id: int,
         institution_id: int,
         title: str,
         currency_code: str,
         type: str,
     ) -> str:
         """
-        Create a new account for a user.
+        Create a new account for the current user.
 
-        Creates a new financial account belonging to the user within
-        a specified institution.
+        Creates a new financial account belonging to the authenticated user
+        within a specified institution.
 
         Args:
-            user_id: The PocketSmith user ID
             institution_id: The ID of the institution to create this account in
             title: A title for the account (e.g., "Savings", "Credit Card")
             currency_code: Currency code for the account (e.g., "USD", "NZD")
@@ -155,7 +153,7 @@ def register_account_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: Us
                 "currency_code": currency_code,
                 "type": type,
             }
-            result = await client.post(f"/users/{user_id}/accounts", json_data=body)
+            result = await client.post(f"/users/{user_ctx.user_id}/accounts", json_data=body)
             return json.dumps(result, indent=2)
         except Exception as e:
             logger.error(f"create_account failed: {e}")
@@ -183,17 +181,15 @@ def register_account_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: Us
 
     @mcp.tool()
     async def update_account_display_order(
-        user_id: int,
         accounts: list[dict[str, int]],
     ) -> str:
         """
-        Update the display order of accounts for a user.
+        Update the display order of accounts for the current user.
 
-        Reorders the user's accounts according to the provided list.
+        Reorders the authenticated user's accounts according to the provided list.
         Each item must include at least an "id" key.
 
         Args:
-            user_id: The PocketSmith user ID
             accounts: List of account objects in new display order,
                       e.g. [{"id": 1}, {"id": 2}, {"id": 3}]
 
@@ -203,7 +199,7 @@ def register_account_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: Us
         try:
             body = {"accounts": accounts}
             result = await client.put(
-                f"/users/{user_id}/accounts", json_data=body
+                f"/users/{user_ctx.user_id}/accounts", json_data=body
             )
             return json.dumps(result, indent=2)
         except Exception as e:

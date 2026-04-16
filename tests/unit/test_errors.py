@@ -2,7 +2,13 @@
 
 import pytest
 
-from pocketsmith_mcp.errors import APIError, ValidationError, validate_id
+from pocketsmith_mcp.errors import (
+    APIError,
+    ValidationError,
+    validate_behaviour,
+    validate_event_id,
+    validate_id,
+)
 
 
 class TestValidateId:
@@ -56,3 +62,89 @@ class TestAPIErrorTruncation:
         """None response body should not cause errors."""
         err = APIError("Server error", status_code=500, response_body=None)
         assert str(err) == "[HTTP 500] Server error"
+
+
+class TestValidateEventId:
+    """Tests for validate_event_id helper."""
+
+    def test_valid_plain_integer_string(self):
+        """Plain integer string should return the value unchanged."""
+        assert validate_event_id("422457484", "event_id") == "422457484"
+
+    def test_valid_composite_id(self):
+        """Composite series_id-timestamp string should return the value unchanged."""
+        assert validate_event_id("26074572-1614556800", "event_id") == "26074572-1614556800"
+
+    def test_rejects_empty_string(self):
+        """Empty string should raise ValidationError."""
+        with pytest.raises(ValidationError, match="event_id"):
+            validate_event_id("", "event_id")
+
+    def test_rejects_whitespace_only(self):
+        """Whitespace-only string should raise ValidationError."""
+        with pytest.raises(ValidationError, match="event_id"):
+            validate_event_id("   ", "event_id")
+
+    def test_rejects_non_numeric_parts(self):
+        """Non-numeric parts should raise ValidationError."""
+        with pytest.raises(ValidationError, match="event_id"):
+            validate_event_id("abc-def", "event_id")
+
+    def test_rejects_single_non_numeric(self):
+        """Single non-numeric part should raise ValidationError."""
+        with pytest.raises(ValidationError, match="event_id"):
+            validate_event_id("abc", "event_id")
+
+    def test_rejects_too_many_parts(self):
+        """Three-part composite ID should raise ValidationError."""
+        with pytest.raises(ValidationError, match="event_id"):
+            validate_event_id("1-2-3", "event_id")
+
+    def test_field_name_in_message(self):
+        """Error message should include the field name."""
+        with pytest.raises(ValidationError, match="my_event"):
+            validate_event_id("bad-value", "my_event")
+
+    def test_whitespace_padded_returns_stripped(self):
+        """Whitespace-padded ID should return trimmed value."""
+        assert validate_event_id(" 600 ", "event_id") == "600"
+
+    def test_whitespace_padded_composite_returns_stripped(self):
+        """Whitespace-padded composite ID should return trimmed value."""
+        assert validate_event_id(" 26074572-1614556800 ", "event_id") == "26074572-1614556800"
+
+
+class TestValidateBehaviour:
+    """Tests for validate_behaviour helper."""
+
+    def test_valid_one(self):
+        """'one' should return the value unchanged."""
+        assert validate_behaviour("one", "behaviour") == "one"
+
+    def test_valid_all(self):
+        """'all' should return the value unchanged."""
+        assert validate_behaviour("all", "behaviour") == "all"
+
+    def test_valid_forward(self):
+        """'forward' should return the value unchanged."""
+        assert validate_behaviour("forward", "behaviour") == "forward"
+
+    def test_rejects_invalid_value(self):
+        """Invalid value should raise ValidationError."""
+        with pytest.raises(ValidationError, match="behaviour"):
+            validate_behaviour("invalid", "behaviour")
+
+    def test_case_sensitive(self):
+        """Validation is case-sensitive; 'One' should raise ValidationError."""
+        with pytest.raises(ValidationError, match="behaviour"):
+            validate_behaviour("One", "behaviour")
+
+    def test_rejects_empty_string(self):
+        """Empty string should raise ValidationError."""
+        with pytest.raises(ValidationError, match="behaviour"):
+            validate_behaviour("", "behaviour")
+
+    def test_field_name_in_message(self):
+        """Error message should include the field name."""
+        with pytest.raises(ValidationError, match="my_behaviour"):
+            validate_behaviour("bad", "my_behaviour")
