@@ -159,3 +159,34 @@ class TestUpdateUser:
 
         with pytest.raises(ValueError, match="Failed to update user"):
             await tool.fn(name="New Name")
+
+    @pytest.mark.asyncio
+    async def test_update_user_beta_user(self, mcp_with_tools, sample_user):
+        """Test updating beta_user flag."""
+        mcp, client = mcp_with_tools
+        updated_user = {**sample_user, "beta_user": True}
+        client.put.return_value = updated_user
+
+        tool = mcp._tool_manager._tools.get("update_user")
+        result = await tool.fn(beta_user=True)
+        result_data = json.loads(result)
+
+        client.put.assert_called_once_with(
+            "/users/42",
+            json_data={"beta_user": True},
+        )
+        assert result_data["beta_user"] is True
+
+    @pytest.mark.asyncio
+    async def test_update_user_beta_user_false(self, mcp_with_tools, sample_user):
+        """Test disabling beta_user."""
+        mcp, client = mcp_with_tools
+        client.put.return_value = {**sample_user, "beta_user": False}
+
+        tool = mcp._tool_manager._tools.get("update_user")
+        await tool.fn(beta_user=False)
+
+        client.put.assert_called_once_with(
+            "/users/42",
+            json_data={"beta_user": False},
+        )

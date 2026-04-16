@@ -47,22 +47,32 @@ class TestListTransactionAccounts:
     async def test_list_transaction_accounts_success(
         self, mcp_with_tools, sample_transaction_account
     ):
-        """Test successful transaction account listing."""
+        """Test successful transaction account listing via dedicated endpoint."""
         mcp, client = mcp_with_tools
-        accounts_response = [{
-            "id": 1,
-            "title": "Savings",
-            "transaction_accounts": [sample_transaction_account]
-        }]
-        client.get.return_value = accounts_response
+        client.get.return_value = [sample_transaction_account]
 
         tool = mcp._tool_manager._tools.get("list_transaction_accounts")
         result = await tool.fn()
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with("/users/42/accounts")
+        client.get.assert_called_once_with("/users/42/transaction_accounts")
         assert len(result_data) == 1
         assert result_data[0]["name"] == "Main Checking"
+
+    @pytest.mark.asyncio
+    async def test_list_transaction_accounts_returns_api_response_as_is(
+        self, mcp_with_tools, sample_transaction_account
+    ):
+        """Test that the dedicated endpoint response is returned without enrichment."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_transaction_account]
+
+        tool = mcp._tool_manager._tools.get("list_transaction_accounts")
+        result = await tool.fn()
+        result_data = json.loads(result)
+
+        assert "parent_account_id" not in result_data[0]
+        assert "parent_account_title" not in result_data[0]
 
     @pytest.mark.asyncio
     async def test_list_transaction_accounts_error(self, mcp_with_tools):

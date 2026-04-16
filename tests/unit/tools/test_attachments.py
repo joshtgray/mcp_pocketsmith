@@ -238,3 +238,164 @@ class TestAttachmentValidation:
         valid_b64 = base64.b64encode(b"test").decode()
         with pytest.raises(ValueError, match="file_name exceeds 255 characters"):
             await tool.fn(title="Test", file_name="a" * 256, file_data=valid_b64)
+
+    @pytest.mark.asyncio
+    async def test_list_transaction_attachments_zero_id(self, mcp_with_tools):
+        """list_transaction_attachments should reject zero transaction_id."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("list_transaction_attachments")
+        with pytest.raises(ValueError, match="transaction_id must be a positive integer"):
+            await tool.fn(transaction_id=0)
+
+    @pytest.mark.asyncio
+    async def test_list_transaction_attachments_negative_id(self, mcp_with_tools):
+        """list_transaction_attachments should reject negative transaction_id."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("list_transaction_attachments")
+        with pytest.raises(ValueError, match="transaction_id must be a positive integer"):
+            await tool.fn(transaction_id=-5)
+
+    @pytest.mark.asyncio
+    async def test_assign_attachment_zero_transaction_id(self, mcp_with_tools):
+        """assign_attachment_to_transaction should reject zero transaction_id."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("assign_attachment_to_transaction")
+        with pytest.raises(ValueError, match="transaction_id must be a positive integer"):
+            await tool.fn(transaction_id=0, attachment_id=700)
+
+    @pytest.mark.asyncio
+    async def test_assign_attachment_zero_attachment_id(self, mcp_with_tools):
+        """assign_attachment_to_transaction should reject zero attachment_id."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("assign_attachment_to_transaction")
+        with pytest.raises(ValueError, match="attachment_id must be a positive integer"):
+            await tool.fn(transaction_id=100, attachment_id=0)
+
+    @pytest.mark.asyncio
+    async def test_unassign_attachment_zero_transaction_id(self, mcp_with_tools):
+        """unassign_attachment_from_transaction should reject zero transaction_id."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("unassign_attachment_from_transaction")
+        with pytest.raises(ValueError, match="transaction_id must be a positive integer"):
+            await tool.fn(transaction_id=0, attachment_id=700)
+
+    @pytest.mark.asyncio
+    async def test_unassign_attachment_negative_attachment_id(self, mcp_with_tools):
+        """unassign_attachment_from_transaction should reject negative attachment_id."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("unassign_attachment_from_transaction")
+        with pytest.raises(ValueError, match="attachment_id must be a positive integer"):
+            await tool.fn(transaction_id=100, attachment_id=-1)
+
+
+class TestListTransactionAttachments:
+    """Tests for list_transaction_attachments tool."""
+
+    @pytest.mark.asyncio
+    async def test_list_transaction_attachments_success(
+        self, mcp_with_tools, sample_attachment
+    ):
+        """Test successful listing of attachments for a transaction."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_attachment]
+
+        tool = mcp._tool_manager._tools.get("list_transaction_attachments")
+        result = await tool.fn(transaction_id=100)
+        result_data = json.loads(result)
+
+        client.get.assert_called_once_with("/transactions/100/attachments")
+        assert len(result_data) == 1
+        assert result_data[0]["id"] == 700
+
+
+class TestAssignAttachmentToTransaction:
+    """Tests for assign_attachment_to_transaction tool."""
+
+    @pytest.mark.asyncio
+    async def test_assign_attachment_success(
+        self, mcp_with_tools, sample_attachment
+    ):
+        """Test successful assignment of attachment to transaction."""
+        mcp, client = mcp_with_tools
+        client.post.return_value = sample_attachment
+
+        tool = mcp._tool_manager._tools.get("assign_attachment_to_transaction")
+        result = await tool.fn(transaction_id=100, attachment_id=700)
+        result_data = json.loads(result)
+
+        client.post.assert_called_once_with(
+            "/transactions/100/attachments",
+            json_data={"attachment_id": 700},
+        )
+        assert result_data["id"] == 700
+
+
+class TestUnassignAttachmentFromTransaction:
+    """Tests for unassign_attachment_from_transaction tool."""
+
+    @pytest.mark.asyncio
+    async def test_unassign_attachment_success(self, mcp_with_tools):
+        """Test successful unassignment of attachment from transaction."""
+        mcp, client = mcp_with_tools
+        client.delete.return_value = None
+
+        tool = mcp._tool_manager._tools.get("unassign_attachment_from_transaction")
+        result = await tool.fn(transaction_id=100, attachment_id=700)
+        result_data = json.loads(result)
+
+        client.delete.assert_called_once_with("/transactions/100/attachments/700")
+        assert result_data["unassigned"] is True
+        assert result_data["transaction_id"] == 100
+        assert result_data["attachment_id"] == 700
+
+
+class TestCreateAttachmentOptionalParams:
+    """Tests for optional params in create_attachment."""
+
+    @pytest.mark.asyncio
+    async def test_create_attachment_title_only(
+        self, mcp_with_tools, sample_attachment
+    ):
+        """Test creating attachment with title only (all file params optional)."""
+        mcp, client = mcp_with_tools
+        client.post.return_value = sample_attachment
+
+        tool = mcp._tool_manager._tools.get("create_attachment")
+        await tool.fn(title="Receipt only")
+
+        client.post.assert_called_once_with(
+            "/users/42/attachments",
+            json_data={"title": "Receipt only"},
+        )
+
+    @pytest.mark.asyncio
+    async def test_create_attachment_no_params(
+        self, mcp_with_tools, sample_attachment
+    ):
+        """Test creating attachment with no params (all optional per spec)."""
+        mcp, client = mcp_with_tools
+        client.post.return_value = sample_attachment
+
+        tool = mcp._tool_manager._tools.get("create_attachment")
+        await tool.fn()
+
+        client.post.assert_called_once_with(
+            "/users/42/attachments",
+            json_data={},
+        )
+
+    @pytest.mark.asyncio
+    async def test_create_attachment_file_only_no_validation(self, mcp_with_tools):
+        """Test that file validation is skipped when file_name is None."""
+        mcp, client = mcp_with_tools
+        client.post.return_value = {"id": 701}
+
+        valid_b64 = base64.b64encode(b"data").decode()
+        tool = mcp._tool_manager._tools.get("create_attachment")
+        # file_data without file_name — no validation should run
+        await tool.fn(file_data=valid_b64)
+
+        client.post.assert_called_once_with(
+            "/users/42/attachments",
+            json_data={"file_data": valid_b64},
+        )

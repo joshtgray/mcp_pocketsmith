@@ -56,6 +56,7 @@ def register_user_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserC
         week_start_day: int | None = None,
         base_currency_code: str | None = None,
         always_show_base_currency: bool | None = None,
+        beta_user: bool | None = None,
     ) -> str:
         """
         Update the authenticated user's settings.
@@ -66,6 +67,7 @@ def register_user_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserC
             week_start_day: Week start day (0=Sunday, 1=Monday, etc.)
             base_currency_code: Base currency code (e.g., "USD", "NZD")
             always_show_base_currency: Whether to always show amounts in base currency
+            beta_user: Whether to enable beta features for the user
 
         Returns:
             JSON object with updated user details
@@ -82,6 +84,8 @@ def register_user_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserC
                 body["base_currency_code"] = base_currency_code
             if always_show_base_currency is not None:
                 body["always_show_base_currency"] = always_show_base_currency
+            if beta_user is not None:
+                body["beta_user"] = beta_user
 
             if not body:
                 raise ValueError("At least one field must be provided for update")

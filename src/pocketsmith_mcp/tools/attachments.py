@@ -79,9 +79,9 @@ def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx:
 
     @mcp.tool()
     async def create_attachment(
-        title: str,
-        file_name: str,
-        file_data: str,
+        title: str | None = None,
+        file_name: str | None = None,
+        file_data: str | None = None,
     ) -> str:
         """
         Create a new attachment by uploading a file.
@@ -97,12 +97,15 @@ def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx:
             JSON object with created attachment
         """
         try:
-            _validate_file_upload(file_name, file_data)
-            body = {
-                "title": title,
-                "file_name": file_name,
-                "file_data": file_data,
-            }
+            if file_name is not None and file_data is not None:
+                _validate_file_upload(file_name, file_data)
+            body = {}
+            if title is not None:
+                body["title"] = title
+            if file_name is not None:
+                body["file_name"] = file_name
+            if file_data is not None:
+                body["file_data"] = file_data
             result = await client.post(f"/users/{user_ctx.user_id}/attachments", json_data=body)
             return json.dumps(result, indent=2)
         except Exception as e:
@@ -177,6 +180,7 @@ def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx:
             JSON array of attachments belonging to the transaction
         """
         try:
+            validate_id(transaction_id, "transaction_id")
             result = await client.get(f"/transactions/{transaction_id}/attachments")
             return json.dumps(result, indent=2)
         except Exception as e:
@@ -201,6 +205,8 @@ def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx:
             JSON object with the assigned attachment
         """
         try:
+            validate_id(transaction_id, "transaction_id")
+            validate_id(attachment_id, "attachment_id")
             result = await client.post(
                 f"/transactions/{transaction_id}/attachments",
                 json_data={"attachment_id": attachment_id},
@@ -232,6 +238,8 @@ def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx:
             Confirmation message
         """
         try:
+            validate_id(transaction_id, "transaction_id")
+            validate_id(attachment_id, "attachment_id")
             await client.delete(
                 f"/transactions/{transaction_id}/attachments/{attachment_id}"
             )

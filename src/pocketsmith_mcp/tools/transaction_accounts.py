@@ -29,19 +29,8 @@ def register_transaction_account_tools(mcp: FastMCP, client: PocketSmithClient, 
             JSON array of transaction accounts
         """
         try:
-            accounts_result = await client.get(f"/users/{user_ctx.user_id}/accounts")
-            transaction_accounts: list[dict[str, Any]] = []
-
-            if isinstance(accounts_result, list):
-                for account in accounts_result:
-                    if isinstance(account, dict) and "transaction_accounts" in account:
-                        for ta in account["transaction_accounts"]:
-                            if isinstance(ta, dict):
-                                ta["parent_account_id"] = account.get("id")
-                                ta["parent_account_title"] = account.get("title")
-                                transaction_accounts.append(ta)
-
-            return json.dumps(transaction_accounts, indent=2)
+            result = await client.get(f"/users/{user_ctx.user_id}/transaction_accounts")
+            return json.dumps(result, indent=2)
         except Exception as e:
             logger.error(f"list_transaction_accounts failed: {e}")
             raise ValueError(f"Failed to list transaction accounts: {e}")
