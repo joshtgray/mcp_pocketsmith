@@ -21,7 +21,6 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         start_date: str | None = None,
         end_date: str | None = None,
         updated_since: str | None = None,
-        category_id: int | None = None,
         search: str | None = None,
         uncategorised: bool = False,
         needs_review: bool = False,
@@ -35,7 +34,6 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             start_date: Filter transactions on/after date (YYYY-MM-DD)
             end_date: Filter transactions on/before date (YYYY-MM-DD)
             updated_since: Filter by last update time (ISO 8601)
-            category_id: Filter by category ID
             search: Search transactions by payee/memo
             uncategorised: Only show uncategorised transactions
             needs_review: Only show transactions needing review
@@ -53,8 +51,6 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
                 params["end_date"] = end_date
             if updated_since:
                 params["updated_since"] = updated_since
-            if category_id:
-                params["category_id"] = category_id
             if search:
                 params["search"] = search
             if uncategorised:
@@ -141,7 +137,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             if cheque_number is not None:
                 body["cheque_number"] = cheque_number
             if labels is not None:
-                body["labels"] = labels
+                body["labels"] = ",".join(labels)
 
             result = await client.post(
                 f"/transaction_accounts/{transaction_account_id}/transactions",
@@ -205,7 +201,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             if is_transfer is not None:
                 body["is_transfer"] = is_transfer
             if labels is not None:
-                body["labels"] = labels
+                body["labels"] = ",".join(labels)
             if needs_review is not None:
                 body["needs_review"] = needs_review
 
@@ -243,3 +239,171 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         except Exception as e:
             logger.error(f"delete_transaction failed: {e}")
             raise ValueError(f"Failed to delete transaction {transaction_id}: {e}")
+
+    @mcp.tool()
+    async def list_transactions_by_account(
+        account_id: int,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        updated_since: str | None = None,
+        search: str | None = None,
+        uncategorised: bool = False,
+        needs_review: bool = False,
+        transaction_type: str | None = None,
+        page: int = 1,
+    ) -> str:
+        """
+        List transactions for a specific account.
+
+        Args:
+            account_id: The account ID to list transactions for
+            start_date: Filter transactions on/after date (YYYY-MM-DD)
+            end_date: Filter transactions on/before date (YYYY-MM-DD)
+            updated_since: Filter by last update time (ISO 8601)
+            search: Search transactions by payee/memo
+            uncategorised: Only show uncategorised transactions
+            needs_review: Only show transactions needing review
+            transaction_type: Filter by type ("debit" or "credit")
+            page: Page number for pagination (default: 1)
+
+        Returns:
+            JSON array of transactions
+        """
+        try:
+            validate_id(account_id, "account_id")
+            params: dict[str, Any] = {"page": page}
+            if start_date:
+                params["start_date"] = start_date
+            if end_date:
+                params["end_date"] = end_date
+            if updated_since:
+                params["updated_since"] = updated_since
+            if search:
+                params["search"] = search
+            if uncategorised:
+                params["uncategorised"] = 1
+            if needs_review:
+                params["needs_review"] = 1
+            if transaction_type:
+                params["type"] = transaction_type
+
+            result = await client.get(f"/accounts/{account_id}/transactions", params=params)
+            return json.dumps(result, indent=2)
+        except Exception as e:
+            logger.error(f"list_transactions_by_account failed: {e}")
+            raise ValueError(f"Failed to list transactions for account {account_id}: {e}")
+
+    @mcp.tool()
+    async def list_transactions_by_transaction_account(
+        transaction_account_id: int,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        updated_since: str | None = None,
+        search: str | None = None,
+        uncategorised: bool = False,
+        needs_review: bool = False,
+        transaction_type: str | None = None,
+        page: int = 1,
+    ) -> str:
+        """
+        List transactions for a specific transaction account.
+
+        Args:
+            transaction_account_id: The transaction account ID to list transactions for
+            start_date: Filter transactions on/after date (YYYY-MM-DD)
+            end_date: Filter transactions on/before date (YYYY-MM-DD)
+            updated_since: Filter by last update time (ISO 8601)
+            search: Search transactions by payee/memo
+            uncategorised: Only show uncategorised transactions
+            needs_review: Only show transactions needing review
+            transaction_type: Filter by type ("debit" or "credit")
+            page: Page number for pagination (default: 1)
+
+        Returns:
+            JSON array of transactions
+        """
+        try:
+            validate_id(transaction_account_id, "transaction_account_id")
+            params: dict[str, Any] = {"page": page}
+            if start_date:
+                params["start_date"] = start_date
+            if end_date:
+                params["end_date"] = end_date
+            if updated_since:
+                params["updated_since"] = updated_since
+            if search:
+                params["search"] = search
+            if uncategorised:
+                params["uncategorised"] = 1
+            if needs_review:
+                params["needs_review"] = 1
+            if transaction_type:
+                params["type"] = transaction_type
+
+            result = await client.get(
+                f"/transaction_accounts/{transaction_account_id}/transactions",
+                params=params,
+            )
+            return json.dumps(result, indent=2)
+        except Exception as e:
+            logger.error(f"list_transactions_by_transaction_account failed: {e}")
+            raise ValueError(
+                f"Failed to list transactions for transaction account {transaction_account_id}: {e}"
+            )
+
+    @mcp.tool()
+    async def list_transactions_by_category(
+        category_id: int,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        updated_since: str | None = None,
+        search: str | None = None,
+        uncategorised: bool = False,
+        needs_review: bool = False,
+        transaction_type: str | None = None,
+        page: int = 1,
+    ) -> str:
+        """
+        List transactions for a specific category.
+
+        The category_id may be a single category ID or a comma-separated list of
+        category IDs (e.g. pass multiple via the API path — use one call per
+        category if multiple are needed).
+
+        Args:
+            category_id: The category ID to list transactions for
+            start_date: Filter transactions on/after date (YYYY-MM-DD)
+            end_date: Filter transactions on/before date (YYYY-MM-DD)
+            updated_since: Filter by last update time (ISO 8601)
+            search: Search transactions by payee/memo
+            uncategorised: Only show uncategorised transactions
+            needs_review: Only show transactions needing review
+            transaction_type: Filter by type ("debit" or "credit")
+            page: Page number for pagination (default: 1)
+
+        Returns:
+            JSON array of transactions
+        """
+        try:
+            validate_id(category_id, "category_id")
+            params: dict[str, Any] = {"page": page}
+            if start_date:
+                params["start_date"] = start_date
+            if end_date:
+                params["end_date"] = end_date
+            if updated_since:
+                params["updated_since"] = updated_since
+            if search:
+                params["search"] = search
+            if uncategorised:
+                params["uncategorised"] = 1
+            if needs_review:
+                params["needs_review"] = 1
+            if transaction_type:
+                params["type"] = transaction_type
+
+            result = await client.get(f"/categories/{category_id}/transactions", params=params)
+            return json.dumps(result, indent=2)
+        except Exception as e:
+            logger.error(f"list_transactions_by_category failed: {e}")
+            raise ValueError(f"Failed to list transactions for category {category_id}: {e}")

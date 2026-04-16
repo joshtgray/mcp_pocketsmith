@@ -31,7 +31,7 @@ def register_all_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserCo
     register_user_tools(mcp, client, user_ctx)           # 3 tools
     register_account_tools(mcp, client, user_ctx)         # 4 tools
     register_transaction_account_tools(mcp, client, user_ctx)  # 3 tools
-    register_transaction_tools(mcp, client, user_ctx)     # 5 tools
+    register_transaction_tools(mcp, client, user_ctx)     # 8 tools
     register_category_tools(mcp, client, user_ctx)        # 5 tools
     register_category_rules_tools(mcp, client, user_ctx)  # 2 tools
     register_budgeting_tools(mcp, client, user_ctx)       # 4 tools
