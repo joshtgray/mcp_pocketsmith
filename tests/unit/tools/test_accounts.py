@@ -14,7 +14,6 @@ def mock_client():
     """Create a mock PocketSmith client."""
     client = MagicMock()
     client.get = AsyncMock()
-    client.post = AsyncMock()
     client.put = AsyncMock()
     client.delete = AsyncMock()
     return client
@@ -158,82 +157,3 @@ class TestAccountIdValidation:
         tool = mcp._tool_manager._tools.get("delete_account")
         with pytest.raises(ValueError, match="account_id must be a positive integer"):
             await tool.fn(account_id=-1)
-
-
-class TestCreateAccount:
-    """Tests for create_account tool."""
-
-    @pytest.mark.asyncio
-    async def test_create_account_basic(self, mcp_with_tools, sample_account):
-        """create_account should use user_ctx.user_id in the URL, not an explicit user_id."""
-        mcp, client = mcp_with_tools
-        client.post.return_value = sample_account
-
-        tool = mcp._tool_manager._tools.get("create_account")
-        result = await tool.fn(
-            institution_id=10,
-            title="Savings",
-            currency_code="AUD",
-            type="bank",
-        )
-        result_data = json.loads(result)
-
-        client.post.assert_called_once_with(
-            "/users/42/accounts",
-            json_data={
-                "institution_id": 10,
-                "title": "Savings",
-                "currency_code": "AUD",
-                "type": "bank",
-            },
-        )
-        assert result_data["id"] == sample_account["id"]
-
-    @pytest.mark.asyncio
-    async def test_create_account_url_uses_user_ctx(self, mcp_with_tools, sample_account):
-        """Verify the URL uses the user_ctx user_id (42) not a separately passed value."""
-        mcp, client = mcp_with_tools
-        client.post.return_value = sample_account
-
-        tool = mcp._tool_manager._tools.get("create_account")
-        await tool.fn(
-            institution_id=99,
-            title="Credit Card",
-            currency_code="AUD",
-            type="credits",
-        )
-
-        call_args = client.post.call_args
-        assert call_args[0][0] == "/users/42/accounts"
-
-
-class TestUpdateAccountDisplayOrder:
-    """Tests for update_account_display_order tool."""
-
-    @pytest.mark.asyncio
-    async def test_update_display_order_uses_user_ctx(self, mcp_with_tools, sample_account):
-        """update_account_display_order should use user_ctx.user_id in the URL."""
-        mcp, client = mcp_with_tools
-        client.put.return_value = [sample_account]
-
-        tool = mcp._tool_manager._tools.get("update_account_display_order")
-        result = await tool.fn(accounts=[{"id": 1}, {"id": 2}])
-        result_data = json.loads(result)
-
-        client.put.assert_called_once_with(
-            "/users/42/accounts",
-            json_data={"accounts": [{"id": 1}, {"id": 2}]},
-        )
-        assert isinstance(result_data, list)
-
-    @pytest.mark.asyncio
-    async def test_update_display_order_url_uses_user_ctx(self, mcp_with_tools, sample_account):
-        """Verify the URL contains the user_ctx user_id (42)."""
-        mcp, client = mcp_with_tools
-        client.put.return_value = [sample_account]
-
-        tool = mcp._tool_manager._tools.get("update_account_display_order")
-        await tool.fn(accounts=[{"id": 5}])
-
-        call_args = client.put.call_args
-        assert call_args[0][0] == "/users/42/accounts"

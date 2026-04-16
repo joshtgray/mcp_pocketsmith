@@ -6,7 +6,7 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.client.api_client import PocketSmithClient
-from pocketsmith_mcp.errors import validate_behaviour, validate_event_id, validate_id
+from pocketsmith_mcp.errors import validate_id
 from pocketsmith_mcp.logger import get_logger
 from pocketsmith_mcp.user_context import UserContext
 
@@ -18,8 +18,8 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
 
     @mcp.tool()
     async def list_events(
-        start_date: str | None = None,
-        end_date: str | None = None,
+        start_date: str,
+        end_date: str,
     ) -> str:
         """
         List budget/calendar events.
@@ -28,18 +28,17 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
         forecasting, including recurring bills and income.
 
         Args:
-            start_date: Filter events on/after date (YYYY-MM-DD)
-            end_date: Filter events on/before date (YYYY-MM-DD)
+            start_date: Start date for events (YYYY-MM-DD)
+            end_date: End date for events (YYYY-MM-DD)
 
         Returns:
             JSON array of events
         """
         try:
-            params: dict[str, Any] = {}
-            if start_date:
-                params["start_date"] = start_date
-            if end_date:
-                params["end_date"] = end_date
+            params: dict[str, Any] = {
+                "start_date": start_date,
+                "end_date": end_date,
+            }
 
             result = await client.get(f"/users/{user_ctx.user_id}/events", params=params)
             return json.dumps(result, indent=2)
@@ -48,20 +47,19 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
             raise ValueError(f"Failed to list events: {e}")
 
     @mcp.tool()
-    async def get_event(event_id: str) -> str:
+    async def get_event(event_id: int) -> str:
         """
         Get details of a specific event.
 
         Args:
-            event_id: The event ID (plain integer string like "600" or
-                composite series_id-timestamp like "26074572-1614556800")
+            event_id: The event ID
 
         Returns:
             JSON object with event details including amount, date,
             repeat settings, and associated category/scenario
         """
         try:
-            event_id = validate_event_id(event_id, "event_id")
+            validate_id(event_id, "event_id")
             result = await client.get(f"/events/{event_id}")
             return json.dumps(result, indent=2)
         except Exception as e:
@@ -122,10 +120,10 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
 
     @mcp.tool()
     async def update_event(
-        event_id: str,
-        behaviour: str = "one",
+        event_id: int,
         category_id: int | None = None,
         amount: float | None = None,
+        date: str | None = None,
         repeat_type: str | None = None,
         repeat_interval: int | None = None,
         note: str | None = None,
@@ -134,21 +132,11 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
         """
         Update an event.
 
-        For recurring events, the behaviour parameter controls which
-        occurrences are updated.
-
-        Note: Date changes are not supported by the PocketSmith API via
-        PUT. To change an event's date, delete the event and recreate it
-        with the desired date.
-
         Args:
-            event_id: The event ID (plain integer string like "600" or
-                composite series_id-timestamp like "26074572-1614556800")
-            behaviour: Which occurrences to update: "one" (default,
-                this instance only), "forward" (this and future), or
-                "all" (all occurrences in the series)
+            event_id: The event ID to update
             category_id: New category ID
             amount: New amount
+            date: New date (YYYY-MM-DD)
             repeat_type: New repeat frequency
             repeat_interval: New repeat interval
             note: New note
@@ -158,13 +146,14 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
             JSON object with updated event
         """
         try:
-            event_id = validate_event_id(event_id, "event_id")
-            behaviour = validate_behaviour(behaviour, "behaviour")
+            validate_id(event_id, "event_id")
             body: dict[str, Any] = {}
             if category_id is not None:
                 body["category_id"] = category_id
             if amount is not None:
                 body["amount"] = amount
+            if date is not None:
+                body["date"] = date
             if repeat_type is not None:
                 body["repeat_type"] = repeat_type
             if repeat_interval is not None:
@@ -177,8 +166,6 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
             if not body:
                 raise ValueError("At least one field must be provided for update")
 
-            body["behaviour"] = behaviour
-
             result = await client.put(f"/events/{event_id}", json_data=body)
             return json.dumps(result, indent=2)
         except Exception as e:
@@ -186,27 +173,22 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
             raise ValueError(f"Failed to update event {event_id}: {e}")
 
     @mcp.tool()
-    async def delete_event(event_id: str, behaviour: str = "one") -> str:
+    async def delete_event(event_id: int) -> str:
         """
         Delete an event.
 
-        For recurring events, the behaviour parameter controls which
-        occurrences are deleted.
+        NOTE: For recurring events, this deletes only this specific
+        occurrence, not the entire series.
 
         Args:
-            event_id: The event ID (plain integer string like "600" or
-                composite series_id-timestamp like "26074572-1614556800")
-            behaviour: Which occurrences to delete: "one" (default,
-                this instance only), "forward" (this and future), or
-                "all" (all occurrences in the series)
+            event_id: The event ID to delete
 
         Returns:
             Confirmation message
         """
         try:
-            event_id = validate_event_id(event_id, "event_id")
-            behaviour = validate_behaviour(behaviour, "behaviour")
-            await client.delete(f"/events/{event_id}", params={"behaviour": behaviour})
+            validate_id(event_id, "event_id")
+            await client.delete(f"/events/{event_id}")
             return json.dumps({
                 "deleted": True,
                 "event_id": event_id,

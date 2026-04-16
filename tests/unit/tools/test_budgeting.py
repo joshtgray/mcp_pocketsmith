@@ -108,6 +108,8 @@ class TestGetTrendAnalysis:
         result = await tool.fn(
             period="months",
             interval=1,
+            categories="100",
+            scenarios="200",
             start_date="2024-01-01",
             end_date="2024-12-31"
         )

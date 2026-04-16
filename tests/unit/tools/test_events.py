@@ -52,10 +52,13 @@ class TestListEvents:
         client.get.return_value = [sample_event]
 
         tool = mcp._tool_manager._tools.get("list_events")
-        result = await tool.fn()
+        result = await tool.fn(start_date="2024-01-01", end_date="2024-12-31")
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with("/users/42/events", params={})
+        client.get.assert_called_once_with(
+            "/users/42/events",
+            params={"start_date": "2024-01-01", "end_date": "2024-12-31"}
+        )
         assert len(result_data) == 1
 
     @pytest.mark.asyncio
@@ -81,49 +84,16 @@ class TestGetEvent:
 
     @pytest.mark.asyncio
     async def test_get_event_success(self, mcp_with_tools, sample_event):
-        """Test successful event retrieval with plain string ID."""
+        """Test successful event retrieval."""
         mcp, client = mcp_with_tools
         client.get.return_value = sample_event
 
         tool = mcp._tool_manager._tools.get("get_event")
-        result = await tool.fn(event_id="600")
+        result = await tool.fn(event_id=600)
         result_data = json.loads(result)
 
         client.get.assert_called_once_with("/events/600")
         assert result_data["id"] == 600
-
-    @pytest.mark.asyncio
-    async def test_get_event_with_composite_id(self, mcp_with_tools, sample_event):
-        """Test event retrieval with composite series_id-timestamp string ID."""
-        mcp, client = mcp_with_tools
-        client.get.return_value = sample_event
-
-        tool = mcp._tool_manager._tools.get("get_event")
-        result = await tool.fn(event_id="26074572-1614556800")
-        json.loads(result)
-
-        client.get.assert_called_once_with("/events/26074572-1614556800")
-
-    @pytest.mark.asyncio
-    async def test_get_event_with_plain_id(self, mcp_with_tools, sample_event):
-        """Test event retrieval with plain integer string ID."""
-        mcp, client = mcp_with_tools
-        client.get.return_value = sample_event
-
-        tool = mcp._tool_manager._tools.get("get_event")
-        await tool.fn(event_id="600")
-
-        client.get.assert_called_once_with("/events/600")
-
-    @pytest.mark.asyncio
-    async def test_get_event_invalid_id(self, mcp_with_tools):
-        """Test that invalid event ID raises ValueError."""
-        mcp, client = mcp_with_tools
-
-        tool = mcp._tool_manager._tools.get("get_event")
-
-        with pytest.raises(ValueError):
-            await tool.fn(event_id="not-valid-id")
 
 
 class TestCreateEvent:
@@ -181,17 +151,17 @@ class TestUpdateEvent:
 
     @pytest.mark.asyncio
     async def test_update_event_amount(self, mcp_with_tools, sample_event):
-        """Test updating event amount with plain string ID."""
+        """Test updating event amount."""
         mcp, client = mcp_with_tools
         updated = {**sample_event, "amount": -75.00}
         client.put.return_value = updated
 
         tool = mcp._tool_manager._tools.get("update_event")
-        await tool.fn(event_id="600", amount=-75.00)
+        await tool.fn(event_id=600, amount=-75.00)
 
         client.put.assert_called_once_with(
             "/events/600",
-            json_data={"amount": -75.00, "behaviour": "one"}
+            json_data={"amount": -75.00}
         )
 
     @pytest.mark.asyncio
@@ -202,104 +172,7 @@ class TestUpdateEvent:
         tool = mcp._tool_manager._tools.get("update_event")
 
         with pytest.raises(ValueError, match="At least one field must be provided"):
-            await tool.fn(event_id="600")
-
-    @pytest.mark.asyncio
-    async def test_update_event_with_composite_id(self, mcp_with_tools, sample_event):
-        """Test update_event with composite series_id-timestamp ID."""
-        mcp, client = mcp_with_tools
-        client.put.return_value = sample_event
-
-        tool = mcp._tool_manager._tools.get("update_event")
-        await tool.fn(event_id="26074572-1614556800", amount=-75.00)
-
-        client.put.assert_called_once_with(
-            "/events/26074572-1614556800",
-            json_data={"amount": -75.00, "behaviour": "one"}
-        )
-
-    @pytest.mark.asyncio
-    async def test_update_event_behaviour_one(self, mcp_with_tools, sample_event):
-        """Test that default behaviour is 'one' and is included in body."""
-        mcp, client = mcp_with_tools
-        client.put.return_value = sample_event
-
-        tool = mcp._tool_manager._tools.get("update_event")
-        await tool.fn(event_id="600", amount=-50.00)
-
-        call_body = client.put.call_args[1]["json_data"]
-        assert call_body["behaviour"] == "one"
-
-    @pytest.mark.asyncio
-    async def test_update_event_behaviour_all(self, mcp_with_tools, sample_event):
-        """Test that behaviour='all' is passed in request body."""
-        mcp, client = mcp_with_tools
-        client.put.return_value = sample_event
-
-        tool = mcp._tool_manager._tools.get("update_event")
-        await tool.fn(event_id="600", amount=-50.00, behaviour="all")
-
-        call_body = client.put.call_args[1]["json_data"]
-        assert call_body["behaviour"] == "all"
-
-    @pytest.mark.asyncio
-    async def test_update_event_behaviour_forward(self, mcp_with_tools, sample_event):
-        """Test that behaviour='forward' is passed in request body."""
-        mcp, client = mcp_with_tools
-        client.put.return_value = sample_event
-
-        tool = mcp._tool_manager._tools.get("update_event")
-        await tool.fn(event_id="600", amount=-50.00, behaviour="forward")
-
-        call_body = client.put.call_args[1]["json_data"]
-        assert call_body["behaviour"] == "forward"
-
-    @pytest.mark.asyncio
-    async def test_update_event_invalid_behaviour(self, mcp_with_tools):
-        """Test that invalid behaviour raises ValueError."""
-        mcp, client = mcp_with_tools
-
-        tool = mcp._tool_manager._tools.get("update_event")
-
-        with pytest.raises(ValueError):
-            await tool.fn(event_id="600", amount=-50.00, behaviour="invalid")
-
-    @pytest.mark.asyncio
-    async def test_update_event_invalid_event_id(self, mcp_with_tools):
-        """Test that invalid event ID raises ValueError."""
-        mcp, client = mcp_with_tools
-
-        tool = mcp._tool_manager._tools.get("update_event")
-
-        with pytest.raises(ValueError):
-            await tool.fn(event_id="not-valid-id", amount=-50.00)
-
-    @pytest.mark.asyncio
-    async def test_update_event_amount_and_note(self, mcp_with_tools, sample_event):
-        """Test that only specified fields plus behaviour appear in body."""
-        mcp, client = mcp_with_tools
-        client.put.return_value = sample_event
-
-        tool = mcp._tool_manager._tools.get("update_event")
-        await tool.fn(event_id="600", amount=-99.00, note="Updated note")
-
-        call_body = client.put.call_args[1]["json_data"]
-        assert call_body == {
-            "amount": -99.00,
-            "note": "Updated note",
-            "behaviour": "one"
-        }
-
-    @pytest.mark.asyncio
-    async def test_update_event_no_date_parameter(self, mcp_with_tools, sample_event):
-        """Test that update_event does not accept a date parameter."""
-        mcp, client = mcp_with_tools
-        client.put.return_value = sample_event
-
-        tool = mcp._tool_manager._tools.get("update_event")
-        import inspect
-        sig = inspect.signature(tool.fn)
-        assert "date" not in sig.parameters
+            await tool.fn(event_id=600)
 
 
 class TestDeleteEvent:
@@ -307,131 +180,13 @@ class TestDeleteEvent:
 
     @pytest.mark.asyncio
     async def test_delete_event_success(self, mcp_with_tools):
-        """Test successful event deletion with plain string ID."""
+        """Test successful event deletion."""
         mcp, client = mcp_with_tools
         client.delete.return_value = None
 
         tool = mcp._tool_manager._tools.get("delete_event")
-        result = await tool.fn(event_id="600")
+        result = await tool.fn(event_id=600)
         result_data = json.loads(result)
 
-        client.delete.assert_called_once_with("/events/600", params={"behaviour": "one"})
+        client.delete.assert_called_once_with("/events/600")
         assert result_data["deleted"] is True
-
-    @pytest.mark.asyncio
-    async def test_delete_event_with_composite_id(self, mcp_with_tools):
-        """Test deletion with composite series_id-timestamp ID."""
-        mcp, client = mcp_with_tools
-        client.delete.return_value = None
-
-        tool = mcp._tool_manager._tools.get("delete_event")
-        result = await tool.fn(event_id="407124074-1773792000")
-        result_data = json.loads(result)
-
-        client.delete.assert_called_once_with(
-            "/events/407124074-1773792000", params={"behaviour": "one"}
-        )
-        assert result_data["deleted"] is True
-        assert result_data["event_id"] == "407124074-1773792000"
-
-    @pytest.mark.asyncio
-    async def test_delete_event_behaviour_one(self, mcp_with_tools):
-        """Test that default behaviour is 'one' (query param)."""
-        mcp, client = mcp_with_tools
-        client.delete.return_value = None
-
-        tool = mcp._tool_manager._tools.get("delete_event")
-        await tool.fn(event_id="600")
-
-        client.delete.assert_called_once_with("/events/600", params={"behaviour": "one"})
-
-    @pytest.mark.asyncio
-    async def test_delete_event_behaviour_all(self, mcp_with_tools):
-        """Test behaviour='all' is passed as query param."""
-        mcp, client = mcp_with_tools
-        client.delete.return_value = None
-
-        tool = mcp._tool_manager._tools.get("delete_event")
-        await tool.fn(event_id="600", behaviour="all")
-
-        client.delete.assert_called_once_with("/events/600", params={"behaviour": "all"})
-
-    @pytest.mark.asyncio
-    async def test_delete_event_behaviour_forward(self, mcp_with_tools):
-        """Test behaviour='forward' is passed as query param."""
-        mcp, client = mcp_with_tools
-        client.delete.return_value = None
-
-        tool = mcp._tool_manager._tools.get("delete_event")
-        await tool.fn(event_id="600", behaviour="forward")
-
-        client.delete.assert_called_once_with("/events/600", params={"behaviour": "forward"})
-
-    @pytest.mark.asyncio
-    async def test_delete_event_invalid_behaviour(self, mcp_with_tools):
-        """Test that invalid behaviour raises ValueError."""
-        mcp, client = mcp_with_tools
-
-        tool = mcp._tool_manager._tools.get("delete_event")
-        with pytest.raises(ValueError, match="behaviour"):
-            await tool.fn(event_id="600", behaviour="invalid")
-
-    @pytest.mark.asyncio
-    async def test_delete_event_invalid_event_id(self, mcp_with_tools):
-        """Test that invalid event_id raises ValueError."""
-        mcp, client = mcp_with_tools
-
-        tool = mcp._tool_manager._tools.get("delete_event")
-        with pytest.raises(ValueError, match="event_id"):
-            await tool.fn(event_id="not-valid-id")
-
-
-class TestWhitespaceTrimming:
-    """Tests verifying whitespace-padded event_ids produce clean API URLs."""
-
-    @pytest.mark.asyncio
-    async def test_get_event_trims_whitespace_from_plain_id(self, mcp_with_tools, sample_event):
-        """Whitespace-padded plain ID is trimmed before building the GET URL."""
-        mcp, client = mcp_with_tools
-        client.get.return_value = sample_event
-
-        tool = mcp._tool_manager._tools.get("get_event")
-        await tool.fn(event_id="  600  ")
-
-        client.get.assert_called_once_with("/events/600")
-
-    @pytest.mark.asyncio
-    async def test_get_event_trims_whitespace_from_composite_id(self, mcp_with_tools, sample_event):
-        """Whitespace-padded composite ID is trimmed before building the GET URL."""
-        mcp, client = mcp_with_tools
-        client.get.return_value = sample_event
-
-        tool = mcp._tool_manager._tools.get("get_event")
-        await tool.fn(event_id="  26074572-1614556800  ")
-
-        client.get.assert_called_once_with("/events/26074572-1614556800")
-
-    @pytest.mark.asyncio
-    async def test_update_event_trims_whitespace_from_event_id(self, mcp_with_tools, sample_event):
-        """Whitespace-padded event_id is trimmed before building the PUT URL."""
-        mcp, client = mcp_with_tools
-        client.put.return_value = sample_event
-
-        tool = mcp._tool_manager._tools.get("update_event")
-        await tool.fn(event_id="  600  ", amount=-50.00)
-
-        client.put.assert_called_once_with(
-            "/events/600",
-            json_data={"amount": -50.00, "behaviour": "one"}
-        )
-
-    @pytest.mark.asyncio
-    async def test_delete_event_trims_whitespace_from_event_id(self, mcp_with_tools):
-        """Whitespace-padded event_id is trimmed before building the DELETE URL."""
-        mcp, client = mcp_with_tools
-        client.delete.return_value = None
-
-        tool = mcp._tool_manager._tools.get("delete_event")
-        await tool.fn(event_id="  600  ")
-
-        client.delete.assert_called_once_with("/events/600", params={"behaviour": "one"})

@@ -42,8 +42,8 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: 
     async def get_budget_summary(
         start_date: str,
         end_date: str,
-        period: str | None = None,
-        interval: int | None = None,
+        period: str,
+        interval: int,
         categories: str | None = None,
         scenarios: str | None = None,
         roll_up: bool = False,
@@ -57,7 +57,7 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: 
         Args:
             start_date: Analysis start date (YYYY-MM-DD)
             end_date: Analysis end date (YYYY-MM-DD)
-            period: Period grouping (weeks, months)
+            period: Period grouping - one of: weeks, months, years, event
             interval: Period interval (e.g., 2 for bi-weekly)
             categories: Comma-separated category IDs to include
             scenarios: Comma-separated scenario IDs to include
@@ -71,12 +71,10 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: 
             params = {
                 "start_date": start_date,
                 "end_date": end_date,
+                "period": period,
+                "interval": interval,
                 "roll_up": 1 if roll_up else 0,
             }
-            if period:
-                params["period"] = period
-            if interval:
-                params["interval"] = interval
             if categories:
                 params["categories"] = categories
             if scenarios:
@@ -92,10 +90,10 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: 
     async def get_trend_analysis(
         start_date: str,
         end_date: str,
-        period: str | None = None,
-        interval: int | None = None,
-        categories: str | None = None,
-        scenarios: str | None = None,
+        period: str,
+        interval: int,
+        categories: str,
+        scenarios: str,
         roll_up: bool = False,
     ) -> str:
         """
@@ -107,8 +105,8 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: 
         Args:
             start_date: Analysis start date (YYYY-MM-DD)
             end_date: Analysis end date (YYYY-MM-DD)
-            period: Period grouping (weeks, months)
-            interval: Period interval
+            period: Period grouping - one of: weeks, months, years, event
+            interval: Period interval (e.g., 1 for single-period steps)
             categories: Comma-separated category IDs to include
             scenarios: Comma-separated scenario IDs to include
             roll_up: Roll up child categories to parents
@@ -121,16 +119,12 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: 
             params = {
                 "start_date": start_date,
                 "end_date": end_date,
+                "period": period,
+                "interval": interval,
+                "categories": categories,
+                "scenarios": scenarios,
                 "roll_up": 1 if roll_up else 0,
             }
-            if period:
-                params["period"] = period
-            if interval:
-                params["interval"] = interval
-            if categories:
-                params["categories"] = categories
-            if scenarios:
-                params["scenarios"] = scenarios
 
             result = await client.get(f"/users/{user_ctx.user_id}/trend_analysis", params=params)
             return json.dumps(result, indent=2)
