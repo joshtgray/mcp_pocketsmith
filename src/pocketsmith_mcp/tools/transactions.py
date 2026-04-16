@@ -161,6 +161,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         is_transfer: bool | None = None,
         labels: list[str] | None = None,
         needs_review: bool | None = None,
+        splits: list[dict] | None = None,
     ) -> str:
         """
         Update an existing transaction.
@@ -177,6 +178,10 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             is_transfer: Update transfer status
             labels: New labels (replaces existing)
             needs_review: Update review status
+            splits: Optional list of split objects to atomically split the
+                transaction. Each dict may contain: amount (number), payee
+                (string), category_id (int), is_transfer (bool), date
+                (string), note (string).
 
         Returns:
             JSON object with updated transaction
@@ -204,6 +209,8 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
                 body["labels"] = ",".join(labels)
             if needs_review is not None:
                 body["needs_review"] = needs_review
+            if splits is not None:
+                body["splits"] = splits
 
             if not body:
                 raise ValueError("At least one field must be provided for update")

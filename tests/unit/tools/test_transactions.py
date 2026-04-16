@@ -279,6 +279,38 @@ class TestUpdateTransactionLabels:
         assert call_args[1]["json_data"]["labels"] == "food"
 
 
+class TestUpdateTransactionSplits:
+    """Tests for splits support in update_transaction."""
+
+    @pytest.mark.asyncio
+    async def test_update_transaction_with_splits(self, mcp_with_tools, sample_transaction):
+        """Providing splits should include them in the request body."""
+        mcp, client = mcp_with_tools
+        client.put.return_value = sample_transaction
+
+        splits = [
+            {"amount": -3.00, "payee": "Coffee", "category_id": 10},
+            {"amount": -2.50, "payee": "Tip", "category_id": 11},
+        ]
+        tool = mcp._tool_manager._tools.get("update_transaction")
+        await tool.fn(transaction_id=456, splits=splits)
+
+        call_args = client.put.call_args
+        assert call_args[1]["json_data"]["splits"] == splits
+
+    @pytest.mark.asyncio
+    async def test_update_transaction_without_splits(self, mcp_with_tools, sample_transaction):
+        """Omitting splits should not include the key in the request body."""
+        mcp, client = mcp_with_tools
+        client.put.return_value = sample_transaction
+
+        tool = mcp._tool_manager._tools.get("update_transaction")
+        await tool.fn(transaction_id=456, payee="New Payee")
+
+        call_args = client.put.call_args
+        assert "splits" not in call_args[1]["json_data"]
+
+
 class TestListTransactionsByAccount:
     """Tests for list_transactions_by_account tool."""
 

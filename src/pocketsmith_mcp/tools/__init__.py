@@ -36,7 +36,7 @@ def register_all_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserCo
     register_category_rules_tools(mcp, client, user_ctx)  # 2 tools
     register_budgeting_tools(mcp, client, user_ctx)       # 4 tools
     register_institution_tools(mcp, client, user_ctx)     # 5 tools
-    register_event_tools(mcp, client, user_ctx)           # 5 tools
+    register_event_tools(mcp, client, user_ctx)           # 6 tools
     register_attachment_tools(mcp, client, user_ctx)      # 5 tools
     register_label_tools(mcp, client, user_ctx)           # 2 tools
     register_utility_tools(mcp, client)                   # 2 tools (no user_id needed)

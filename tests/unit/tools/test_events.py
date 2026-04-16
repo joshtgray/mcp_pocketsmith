@@ -190,3 +190,82 @@ class TestDeleteEvent:
 
         client.delete.assert_called_once_with("/events/600")
         assert result_data["deleted"] is True
+
+
+class TestCreateEventNoPhantomParams:
+    """Verify create_event does not expose params removed from the API spec."""
+
+    def test_colour_not_in_signature(self, mcp_with_tools):
+        """colour is not in the API spec for POST /scenarios/{id}/events."""
+        import inspect
+        mcp, _ = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("create_event")
+        sig = inspect.signature(tool.fn)
+        assert "colour" not in sig.parameters
+
+
+class TestUpdateEventNoPhantomParams:
+    """Verify update_event does not expose params removed from the API spec."""
+
+    def test_category_id_not_in_signature(self, mcp_with_tools):
+        """category_id is not in the API spec for PUT /events/{id}."""
+        import inspect
+        mcp, _ = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("update_event")
+        sig = inspect.signature(tool.fn)
+        assert "category_id" not in sig.parameters
+
+    def test_colour_not_in_signature(self, mcp_with_tools):
+        """colour is not in the API spec for PUT /events/{id}."""
+        import inspect
+        mcp, _ = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("update_event")
+        sig = inspect.signature(tool.fn)
+        assert "colour" not in sig.parameters
+
+
+class TestListScenarioEvents:
+    """Tests for list_scenario_events tool."""
+
+    @pytest.mark.asyncio
+    async def test_list_scenario_events_basic(self, mcp_with_tools, sample_event):
+        """Test basic scenario event listing."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_event]
+
+        tool = mcp._tool_manager._tools.get("list_scenario_events")
+        result = await tool.fn(
+            scenario_id=200,
+            start_date="2024-01-01",
+            end_date="2024-12-31",
+        )
+        result_data = json.loads(result)
+
+        client.get.assert_called_once_with(
+            "/scenarios/200/events",
+            params={"start_date": "2024-01-01", "end_date": "2024-12-31"},
+        )
+        assert len(result_data) == 1
+
+    @pytest.mark.asyncio
+    async def test_list_scenario_events_empty(self, mcp_with_tools):
+        """Test scenario event listing with no results."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = []
+
+        tool = mcp._tool_manager._tools.get("list_scenario_events")
+        result = await tool.fn(
+            scenario_id=200,
+            start_date="2024-01-01",
+            end_date="2024-01-31",
+        )
+        result_data = json.loads(result)
+        assert result_data == []
+
+    @pytest.mark.asyncio
+    async def test_list_scenario_events_invalid_id(self, mcp_with_tools):
+        """list_scenario_events should reject zero scenario_id."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("list_scenario_events")
+        with pytest.raises(ValueError, match="scenario_id must be a positive integer"):
+            await tool.fn(scenario_id=0, start_date="2024-01-01", end_date="2024-12-31")

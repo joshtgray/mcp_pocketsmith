@@ -52,7 +52,6 @@ def register_user_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserC
     @mcp.tool()
     async def update_user(
         name: str | None = None,
-        email: str | None = None,
         time_zone: str | None = None,
         week_start_day: int | None = None,
         base_currency_code: str | None = None,
@@ -63,7 +62,6 @@ def register_user_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserC
 
         Args:
             name: Display name
-            email: Email address
             time_zone: Time zone (e.g., "Pacific/Auckland")
             week_start_day: Week start day (0=Sunday, 1=Monday, etc.)
             base_currency_code: Base currency code (e.g., "USD", "NZD")
@@ -76,8 +74,6 @@ def register_user_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserC
             body: dict[str, Any] = {}
             if name is not None:
                 body["name"] = name
-            if email is not None:
-                body["email"] = email
             if time_zone is not None:
                 body["time_zone"] = time_zone
             if week_start_day is not None:

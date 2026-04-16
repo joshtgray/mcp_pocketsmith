@@ -75,7 +75,6 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
         repeat_type: str = "once",
         repeat_interval: int = 1,
         note: str | None = None,
-        colour: str | None = None,
     ) -> str:
         """
         Create a new budget event.
@@ -89,10 +88,9 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
             amount: Event amount (negative for expenses)
             date: Event date (YYYY-MM-DD)
             repeat_type: Repeat frequency ("once", "daily", "weekly",
-                        "fortnightly", "monthly", "yearly", "each", "once_off")
+                        "fortnightly", "monthly", "yearly", "each weekday")
             repeat_interval: Interval for repeating (e.g., 2 for every 2 weeks)
             note: Event note/description
-            colour: Event color (hex, e.g., "#2196F3")
 
         Returns:
             JSON object with created event
@@ -109,8 +107,6 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
             }
             if note is not None:
                 body["note"] = note
-            if colour is not None:
-                body["colour"] = colour
 
             result = await client.post(f"/scenarios/{scenario_id}/events", json_data=body)
             return json.dumps(result, indent=2)
@@ -121,26 +117,22 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
     @mcp.tool()
     async def update_event(
         event_id: int,
-        category_id: int | None = None,
         amount: float | None = None,
         date: str | None = None,
         repeat_type: str | None = None,
         repeat_interval: int | None = None,
         note: str | None = None,
-        colour: str | None = None,
     ) -> str:
         """
         Update an event.
 
         Args:
             event_id: The event ID to update
-            category_id: New category ID
             amount: New amount
             date: New date (YYYY-MM-DD)
             repeat_type: New repeat frequency
             repeat_interval: New repeat interval
             note: New note
-            colour: New color
 
         Returns:
             JSON object with updated event
@@ -148,8 +140,6 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
         try:
             validate_id(event_id, "event_id")
             body: dict[str, Any] = {}
-            if category_id is not None:
-                body["category_id"] = category_id
             if amount is not None:
                 body["amount"] = amount
             if date is not None:
@@ -160,8 +150,6 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
                 body["repeat_interval"] = repeat_interval
             if note is not None:
                 body["note"] = note
-            if colour is not None:
-                body["colour"] = colour
 
             if not body:
                 raise ValueError("At least one field must be provided for update")
@@ -197,3 +185,32 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
         except Exception as e:
             logger.error(f"delete_event failed: {e}")
             raise ValueError(f"Failed to delete event {event_id}: {e}")
+
+    @mcp.tool()
+    async def list_scenario_events(
+        scenario_id: int,
+        start_date: str,
+        end_date: str,
+    ) -> str:
+        """
+        List events for a specific scenario.
+
+        Args:
+            scenario_id: The scenario ID
+            start_date: Start date for events (YYYY-MM-DD)
+            end_date: End date for events (YYYY-MM-DD)
+
+        Returns:
+            JSON array of events within the scenario
+        """
+        try:
+            validate_id(scenario_id, "scenario_id")
+            params: dict[str, Any] = {
+                "start_date": start_date,
+                "end_date": end_date,
+            }
+            result = await client.get(f"/scenarios/{scenario_id}/events", params=params)
+            return json.dumps(result, indent=2)
+        except Exception as e:
+            logger.error(f"list_scenario_events failed: {e}")
+            raise ValueError(f"Failed to list events for scenario {scenario_id}: {e}")
