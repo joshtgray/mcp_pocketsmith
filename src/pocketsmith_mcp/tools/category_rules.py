@@ -6,30 +6,29 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.client.api_client import PocketSmithClient
+from pocketsmith_mcp.errors import validate_id
 from pocketsmith_mcp.logger import get_logger
+from pocketsmith_mcp.user_context import UserContext
 
 logger = get_logger("tools.category_rules")
 
 
-def register_category_rules_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
+def register_category_rules_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
     """Register category-rules-related MCP tools."""
 
     @mcp.tool()
-    async def list_category_rules(user_id: int) -> str:
+    async def list_category_rules() -> str:
         """
-        List all category rules for a user.
+        List all category rules for the authenticated user.
 
         Category rules automatically assign categories to transactions
         based on payee matching patterns.
-
-        Args:
-            user_id: The PocketSmith user ID
 
         Returns:
             JSON array of category rules
         """
         try:
-            result = await client.get(f"/users/{user_id}/category_rules")
+            result = await client.get(f"/users/{user_ctx.user_id}/category_rules")
             return json.dumps(result, indent=2)
         except Exception as e:
             logger.error(f"list_category_rules failed: {e}")
@@ -55,6 +54,7 @@ def register_category_rules_tools(mcp: FastMCP, client: PocketSmithClient) -> No
         Returns:
             JSON object with the created category rule
         """
+        validate_id(category_id, "category_id")
         try:
             body: dict[str, Any] = {"payee_matches": payee_matches}
             if apply_to_uncategorised:

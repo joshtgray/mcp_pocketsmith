@@ -5,31 +5,30 @@ import json
 from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.client.api_client import PocketSmithClient
+from pocketsmith_mcp.errors import validate_id
 from pocketsmith_mcp.logger import get_logger
+from pocketsmith_mcp.user_context import UserContext
 
 logger = get_logger("tools.institutions")
 
 
-def register_institution_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
+def register_institution_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
     """Register institution-related MCP tools."""
 
     @mcp.tool()
-    async def list_institutions(user_id: int) -> str:
+    async def list_institutions() -> str:
         """
-        List all financial institutions for a user.
+        List all financial institutions.
 
         Institutions represent banks, credit unions, and other
         financial entities. Each institution can have multiple
         accounts associated with it.
 
-        Args:
-            user_id: The PocketSmith user ID
-
         Returns:
             JSON array of institutions
         """
         try:
-            result = await client.get(f"/users/{user_id}/institutions")
+            result = await client.get(f"/users/{user_ctx.user_id}/institutions")
             return json.dumps(result, indent=2)
         except Exception as e:
             logger.error(f"list_institutions failed: {e}")
@@ -47,6 +46,7 @@ def register_institution_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             JSON object with institution details
         """
         try:
+            validate_id(institution_id, "institution_id")
             result = await client.get(f"/institutions/{institution_id}")
             return json.dumps(result, indent=2)
         except Exception as e:
@@ -55,7 +55,6 @@ def register_institution_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
 
     @mcp.tool()
     async def create_institution(
-        user_id: int,
         title: str,
         currency_code: str,
     ) -> str:
@@ -66,9 +65,8 @@ def register_institution_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         with accounts. Useful for organizing accounts by bank.
 
         Args:
-            user_id: The PocketSmith user ID
-            title: Institution name (e.g., "Chase Bank", "Kiwibank")
-            currency_code: Default currency code (e.g., "USD", "NZD")
+            title: Institution name (e.g., "Chase Bank", "Barclays")
+            currency_code: Default currency code (e.g., "USD", "GBP")
 
         Returns:
             JSON object with created institution
@@ -78,7 +76,7 @@ def register_institution_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
                 "title": title,
                 "currency_code": currency_code,
             }
-            result = await client.post(f"/users/{user_id}/institutions", json_data=body)
+            result = await client.post(f"/users/{user_ctx.user_id}/institutions", json_data=body)
             return json.dumps(result, indent=2)
         except Exception as e:
             logger.error(f"create_institution failed: {e}")
@@ -102,6 +100,7 @@ def register_institution_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             JSON object with updated institution
         """
         try:
+            validate_id(institution_id, "institution_id")
             body = {}
             if title is not None:
                 body["title"] = title
@@ -118,10 +117,7 @@ def register_institution_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             raise ValueError(f"Failed to update institution {institution_id}: {e}")
 
     @mcp.tool()
-    async def delete_institution(
-        institution_id: int,
-        merge_into_institution_id: int | None = None,
-    ) -> str:
+    async def delete_institution(institution_id: int) -> str:
         """
         Delete an institution.
 
@@ -130,20 +126,13 @@ def register_institution_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
 
         Args:
             institution_id: The institution ID to delete
-            merge_into_institution_id: Optional institution ID to merge
-                accounts into before deleting
 
         Returns:
             Confirmation message
         """
         try:
-            if merge_into_institution_id is not None:
-                await client.delete(
-                    f"/institutions/{institution_id}",
-                    params={"merge_into_institution_id": merge_into_institution_id},
-                )
-            else:
-                await client.delete(f"/institutions/{institution_id}")
+            validate_id(institution_id, "institution_id")
+            await client.delete(f"/institutions/{institution_id}")
             return json.dumps({
                 "deleted": True,
                 "institution_id": institution_id,

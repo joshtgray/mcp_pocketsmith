@@ -6,79 +6,46 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from pocketsmith_mcp.client.api_client import PocketSmithClient
+from pocketsmith_mcp.errors import validate_id
 from pocketsmith_mcp.logger import get_logger
+from pocketsmith_mcp.user_context import UserContext
 
 logger = get_logger("tools.transactions")
 
 
-def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
+def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
     """Register transaction-related MCP tools."""
 
     @mcp.tool()
     async def list_transactions(
-        user_id: int,
         start_date: str | None = None,
         end_date: str | None = None,
         updated_since: str | None = None,
+        category_id: int | None = None,
         search: str | None = None,
         uncategorised: bool = False,
         needs_review: bool = False,
         transaction_type: str | None = None,
         page: int = 1,
-        account_id: int | None = None,
-        category_id: str | None = None,
-        transaction_account_id: int | None = None,
     ) -> str:
         """
         List transactions with optional filtering.
 
-        By default lists transactions for a user. Provide exactly one of
-        account_id, category_id, or transaction_account_id to scope the
-        listing to that resource instead.
-
         Args:
-            user_id: PocketSmith user ID (used when no scoping ID is given)
             start_date: Filter transactions on/after date (YYYY-MM-DD)
             end_date: Filter transactions on/before date (YYYY-MM-DD)
             updated_since: Filter by last update time (ISO 8601)
+            category_id: Filter by category ID
             search: Search transactions by payee/memo
             uncategorised: Only show uncategorised transactions
             needs_review: Only show transactions needing review
             transaction_type: Filter by type ("debit" or "credit")
             page: Page number for pagination (default: 1)
-            account_id: Scope to an account
-            category_id: Scope to one or more categories (comma-separated IDs, e.g. "42" or "42,43")
-            transaction_account_id: Scope to a transaction account
 
         Returns:
             JSON array of transactions
         """
         try:
-            # Validate mutual exclusion of scoping parameters
-            scope_params = {
-                "account_id": account_id,
-                "category_id": category_id,
-                "transaction_account_id": transaction_account_id,
-            }
-            provided = {k: v for k, v in scope_params.items() if v is not None}
-            if len(provided) > 1:
-                names = ", ".join(provided.keys())
-                raise ValueError(
-                    f"Only one of account_id, category_id, or "
-                    f"transaction_account_id may be provided at a time "
-                    f"(got {names})"
-                )
-
-            # Determine endpoint
-            if account_id is not None:
-                endpoint = f"/accounts/{account_id}/transactions"
-            elif category_id is not None:
-                endpoint = f"/categories/{category_id}/transactions"
-            elif transaction_account_id is not None:
-                endpoint = f"/transaction_accounts/{transaction_account_id}/transactions"
-            else:
-                endpoint = f"/users/{user_id}/transactions"
-
             params: dict[str, Any] = {"page": page}
             if start_date:
                 params["start_date"] = start_date
@@ -86,6 +53,8 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
                 params["end_date"] = end_date
             if updated_since:
                 params["updated_since"] = updated_since
+            if category_id:
+                params["category_id"] = category_id
             if search:
                 params["search"] = search
             if uncategorised:
@@ -95,10 +64,8 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             if transaction_type:
                 params["type"] = transaction_type
 
-            result = await client.get(endpoint, params=params)
+            result = await client.get(f"/users/{user_ctx.user_id}/transactions", params=params)
             return json.dumps(result, indent=2)
-        except ValueError:
-            raise
         except Exception as e:
             logger.error(f"list_transactions failed: {e}")
             raise ValueError(f"Failed to list transactions: {e}")
@@ -116,6 +83,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             category, labels, and account information
         """
         try:
+            validate_id(transaction_id, "transaction_id")
             result = await client.get(f"/transactions/{transaction_id}")
             return json.dumps(result, indent=2)
         except Exception as e:
@@ -156,6 +124,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             JSON object with created transaction
         """
         try:
+            validate_id(transaction_account_id, "transaction_account_id")
             body = {
                 "payee": payee,
                 "amount": amount,
@@ -172,7 +141,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             if cheque_number is not None:
                 body["cheque_number"] = cheque_number
             if labels is not None:
-                body["labels"] = ",".join(labels)
+                body["labels"] = labels
 
             result = await client.post(
                 f"/transaction_accounts/{transaction_account_id}/transactions",
@@ -196,7 +165,6 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
         is_transfer: bool | None = None,
         labels: list[str] | None = None,
         needs_review: bool | None = None,
-        splits: list[dict[str, Any]] | None = None,
     ) -> str:
         """
         Update an existing transaction.
@@ -213,14 +181,12 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             is_transfer: Update transfer status
             labels: New labels (replaces existing)
             needs_review: Update review status
-            splits: Split the transaction into sub-transactions. Each split
-                requires an amount; optionally include payee, category_id,
-                is_transfer, and date.
 
         Returns:
             JSON object with updated transaction
         """
         try:
+            validate_id(transaction_id, "transaction_id")
             body: dict[str, Any] = {}
             if payee is not None:
                 body["payee"] = payee
@@ -239,11 +205,9 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             if is_transfer is not None:
                 body["is_transfer"] = is_transfer
             if labels is not None:
-                body["labels"] = ",".join(labels)
+                body["labels"] = labels
             if needs_review is not None:
                 body["needs_review"] = needs_review
-            if splits is not None:
-                body["splits"] = splits
 
             if not body:
                 raise ValueError("At least one field must be provided for update")
@@ -269,6 +233,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> None:
             Confirmation message
         """
         try:
+            validate_id(transaction_id, "transaction_id")
             await client.delete(f"/transactions/{transaction_id}")
             return json.dumps({
                 "deleted": True,

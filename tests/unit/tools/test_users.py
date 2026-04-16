@@ -19,10 +19,10 @@ def mock_client():
 
 
 @pytest.fixture
-def mcp_with_tools(mock_client):
+def mcp_with_tools(mock_client, user_ctx):
     """Create FastMCP instance with user tools registered."""
     mcp = FastMCP("test-pocketsmith")
-    register_user_tools(mcp, mock_client)
+    register_user_tools(mcp, mock_client, user_ctx)
     return mcp, mock_client
 
 
@@ -68,10 +68,10 @@ class TestGetUser:
         client.get.return_value = sample_user
 
         tool = mcp._tool_manager._tools.get("get_user")
-        result = await tool.fn(user_id=123)
+        result = await tool.fn()
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with("/users/123")
+        client.get.assert_called_once_with("/users/42")
         assert result_data["id"] == sample_user["id"]
 
     @pytest.mark.asyncio
@@ -82,8 +82,8 @@ class TestGetUser:
 
         tool = mcp._tool_manager._tools.get("get_user")
 
-        with pytest.raises(ValueError, match="Failed to get user 123"):
-            await tool.fn(user_id=123)
+        with pytest.raises(ValueError, match="Failed to get user"):
+            await tool.fn()
 
 
 class TestUpdateUser:
@@ -97,31 +97,31 @@ class TestUpdateUser:
         client.put.return_value = updated_user
 
         tool = mcp._tool_manager._tools.get("update_user")
-        result = await tool.fn(user_id=123, name="New Name")
+        result = await tool.fn(name="New Name")
         result_data = json.loads(result)
 
         client.put.assert_called_once_with(
-            "/users/123",
+            "/users/42",
             json_data={"name": "New Name"}
         )
         assert result_data["name"] == "New Name"
 
     @pytest.mark.asyncio
-    async def test_update_user_beta_user(self, mcp_with_tools, sample_user):
-        """Test updating user beta_user flag."""
+    async def test_update_user_email(self, mcp_with_tools, sample_user):
+        """Test updating user email."""
         mcp, client = mcp_with_tools
-        updated_user = {**sample_user, "beta_user": True}
+        updated_user = {**sample_user, "email": "new@example.com"}
         client.put.return_value = updated_user
 
         tool = mcp._tool_manager._tools.get("update_user")
-        result = await tool.fn(user_id=123, beta_user=True)
+        result = await tool.fn(email="new@example.com")
         result_data = json.loads(result)
 
         client.put.assert_called_once_with(
-            "/users/123",
-            json_data={"beta_user": True}
+            "/users/42",
+            json_data={"email": "new@example.com"}
         )
-        assert result_data["beta_user"] is True
+        assert result_data["email"] == "new@example.com"
 
     @pytest.mark.asyncio
     async def test_update_user_multiple_fields(self, mcp_with_tools, sample_user):
@@ -136,14 +136,13 @@ class TestUpdateUser:
 
         tool = mcp._tool_manager._tools.get("update_user")
         result = await tool.fn(
-            user_id=123,
             name="New Name",
             time_zone="America/New_York"
         )
         _result_data = json.loads(result)
 
         client.put.assert_called_once_with(
-            "/users/123",
+            "/users/42",
             json_data={"name": "New Name", "time_zone": "America/New_York"}
         )
 
@@ -155,7 +154,7 @@ class TestUpdateUser:
         tool = mcp._tool_manager._tools.get("update_user")
 
         with pytest.raises(ValueError, match="At least one field must be provided"):
-            await tool.fn(user_id=123)
+            await tool.fn()
 
     @pytest.mark.asyncio
     async def test_update_user_error(self, mcp_with_tools):
@@ -165,5 +164,5 @@ class TestUpdateUser:
 
         tool = mcp._tool_manager._tools.get("update_user")
 
-        with pytest.raises(ValueError, match="Failed to update user 123"):
-            await tool.fn(user_id=123, name="New Name")
+        with pytest.raises(ValueError, match="Failed to update user"):
+            await tool.fn(name="New Name")

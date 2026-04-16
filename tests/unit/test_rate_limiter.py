@@ -133,3 +133,19 @@ class TestRateLimiter:
 
         # Should have waited for token to refill
         assert elapsed >= 0.05  # At least some wait time
+
+    def test_tokens_never_negative_from_precision(self):
+        """Tokens should never be negative due to float precision."""
+        limiter = RateLimiter(tokens_per_interval=10, interval_seconds=60, initial_tokens=0)
+        # Tokens should be clamped to 0, not a tiny negative float
+        assert limiter.tokens >= 0.0
+
+    def test_tokens_rounded_after_refill(self):
+        """Tokens should be rounded to avoid accumulated float drift."""
+        limiter = RateLimiter(tokens_per_interval=3, interval_seconds=1)
+        # 3 tokens/sec = 1 token per 0.333... sec — a repeating decimal
+        # After many refills, float drift could accumulate without rounding
+        for _ in range(100):
+            limiter._refill()
+        # Tokens should still be at max, not max + epsilon
+        assert limiter.tokens == limiter.max_tokens

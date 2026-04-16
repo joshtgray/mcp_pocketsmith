@@ -21,10 +21,10 @@ def mock_client():
 
 
 @pytest.fixture
-def mcp_with_tools(mock_client):
+def mcp_with_tools(mock_client, user_ctx):
     """Create FastMCP instance with institution tools registered."""
     mcp = FastMCP("test-pocketsmith")
-    register_institution_tools(mcp, mock_client)
+    register_institution_tools(mcp, mock_client, user_ctx)
     return mcp, mock_client
 
 
@@ -50,10 +50,10 @@ class TestListInstitutions:
         client.get.return_value = [sample_institution]
 
         tool = mcp._tool_manager._tools.get("list_institutions")
-        result = await tool.fn(user_id=123)
+        result = await tool.fn()
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with("/users/123/institutions")
+        client.get.assert_called_once_with("/users/42/institutions")
         assert len(result_data) == 1
         assert result_data[0]["title"] == "Chase Bank"
 
@@ -86,14 +86,13 @@ class TestCreateInstitution:
 
         tool = mcp._tool_manager._tools.get("create_institution")
         result = await tool.fn(
-            user_id=123,
             title="Chase Bank",
             currency_code="USD"
         )
         result_data = json.loads(result)
 
         client.post.assert_called_once_with(
-            "/users/123/institutions",
+            "/users/42/institutions",
             json_data={"title": "Chase Bank", "currency_code": "USD"}
         )
         assert result_data["title"] == "Chase Bank"
@@ -142,20 +141,4 @@ class TestDeleteInstitution:
         result_data = json.loads(result)
 
         client.delete.assert_called_once_with("/institutions/500")
-        assert result_data["deleted"] is True
-
-    @pytest.mark.asyncio
-    async def test_delete_institution_with_merge(self, mcp_with_tools):
-        """Test institution deletion with merge_into_institution_id."""
-        mcp, client = mcp_with_tools
-        client.delete.return_value = None
-
-        tool = mcp._tool_manager._tools.get("delete_institution")
-        result = await tool.fn(institution_id=500, merge_into_institution_id=501)
-        result_data = json.loads(result)
-
-        client.delete.assert_called_once_with(
-            "/institutions/500",
-            params={"merge_into_institution_id": 501}
-        )
         assert result_data["deleted"] is True

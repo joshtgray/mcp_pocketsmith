@@ -12,9 +12,9 @@
 <p align="center">
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
-  <a href="https://pypi.org/project/pocketsmith-mcp/"><img src="https://img.shields.io/pypi/v/pocketsmith-mcp.svg" alt="PyPI"></a>
-  <img src="https://img.shields.io/badge/tests-148%20passed-brightgreen" alt="Tests: 148 passed">
-  <img src="https://img.shields.io/badge/coverage-84%25-brightgreen" alt="Coverage: 84%">
+  <a href="https://pypi.org/project/pocketsmith-mcp/"><img src="https://img.shields.io/pypi/v/pocketsmith-mcp?color=blue" alt="PyPI"></a>
+  <img src="https://img.shields.io/badge/tests-180%20passed-brightgreen" alt="Tests: 180 passed">
+  <img src="https://img.shields.io/badge/coverage-86%25-brightgreen" alt="Coverage: 86%">
 </p>
 
 <p align="center">
@@ -262,8 +262,10 @@ uv run pytest -m e2e           # End-to-end tests (requires API key)
 tests/
 ├── unit/                 # Fast, isolated tests with mocked API
 │   ├── test_api_client.py
+│   ├── test_errors.py
 │   ├── test_rate_limiter.py
 │   ├── test_circuit_breaker.py
+│   ├── test_user_context.py
 │   └── tools/            # Tool-specific unit tests
 ├── integration/          # Tests with mocked HTTP responses
 │   ├── test_server.py

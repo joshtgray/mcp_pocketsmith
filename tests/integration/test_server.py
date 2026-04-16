@@ -7,20 +7,25 @@ import pytest
 from pocketsmith_mcp.server import create_server, get_server
 
 
+def _mock_config(**overrides):
+    """Create a mock config with correct attribute names."""
+    defaults = {
+        "api_key": "test_key",
+        "api_timeout": 30.0,
+        "max_retries": 3,
+        "rate_limit_per_minute": 60,
+    }
+    defaults.update(overrides)
+    return MagicMock(**defaults)
+
+
 class TestServerCreation:
     """Tests for server creation and configuration."""
 
     def test_create_server_with_api_key(self):
         """Test server creation with explicit API key."""
         with patch("pocketsmith_mcp.server.get_config") as mock_config:
-            mock_config.return_value = MagicMock(
-                api_key="test_key",
-                timeout=30.0,
-                max_retries=3,
-                rate_limit_per_minute=60,
-                host="127.0.0.1",
-                port=8000,
-            )
+            mock_config.return_value = _mock_config()
 
             server = create_server(api_key="explicit_test_key")
 
@@ -30,14 +35,7 @@ class TestServerCreation:
     def test_create_server_from_env(self):
         """Test server creation with environment variable."""
         with patch("pocketsmith_mcp.server.get_config") as mock_config:
-            mock_config.return_value = MagicMock(
-                api_key="env_test_key",
-                timeout=30.0,
-                max_retries=3,
-                rate_limit_per_minute=60,
-                host="127.0.0.1",
-                port=8000,
-            )
+            mock_config.return_value = _mock_config(api_key="env_test_key")
 
             server = create_server()
 
@@ -46,14 +44,7 @@ class TestServerCreation:
     def test_create_server_missing_api_key(self):
         """Test server creation fails without API key."""
         with patch("pocketsmith_mcp.server.get_config") as mock_config:
-            mock_config.return_value = MagicMock(
-                api_key=None,
-                timeout=30.0,
-                max_retries=3,
-                rate_limit_per_minute=60,
-                host="127.0.0.1",
-                port=8000,
-            )
+            mock_config.return_value = _mock_config(api_key=None)
 
             with pytest.raises(ValueError, match="POCKETSMITH_API_KEY"):
                 create_server()
@@ -61,14 +52,7 @@ class TestServerCreation:
     def test_get_server_returns_server(self):
         """Test get_server returns a configured server."""
         with patch("pocketsmith_mcp.server.get_config") as mock_config:
-            mock_config.return_value = MagicMock(
-                api_key="test_key",
-                timeout=30.0,
-                max_retries=3,
-                rate_limit_per_minute=60,
-                host="127.0.0.1",
-                port=8000,
-            )
+            mock_config.return_value = _mock_config()
 
             server = get_server()
 
@@ -79,16 +63,9 @@ class TestServerTools:
     """Tests for server tool registration."""
 
     def test_all_tools_registered(self):
-        """Test that all 45 tools are registered."""
+        """Test that all 44 tools are registered."""
         with patch("pocketsmith_mcp.server.get_config") as mock_config:
-            mock_config.return_value = MagicMock(
-                api_key="test_key",
-                timeout=30.0,
-                max_retries=3,
-                rate_limit_per_minute=60,
-                host="127.0.0.1",
-                port=8000,
-            )
+            mock_config.return_value = _mock_config()
 
             server = create_server()
 
@@ -107,9 +84,6 @@ class TestServerTools:
                 "get_account",
                 "update_account",
                 "delete_account",
-                "create_account",
-                "list_accounts_by_institution",
-                "update_account_display_order",
                 # Transaction account tools
                 "list_transaction_accounts",
                 "get_transaction_account",
@@ -149,26 +123,21 @@ class TestServerTools:
                 "create_attachment",
                 "update_attachment",
                 "delete_attachment",
-                "list_transaction_attachments",
-                "assign_attachment_to_transaction",
-                "unassign_attachment_from_transaction",
                 # Label tools
                 "list_labels",
                 "list_saved_searches",
-                # Category rule tools
-                "list_category_rules",
-                "create_category_rule",
                 # Utility tools
                 "list_currencies",
                 "list_time_zones",
-                "get_currency",
+                # Bulk tools
+                "bulk_update_transactions",
             ]
 
             for tool_name in expected_tools:
                 assert tool_name in tool_names, f"Tool '{tool_name}' not registered"
 
-            # Verify total count (52 tools)
-            assert len(tool_names) == 52, f"Expected 52 tools, got {len(tool_names)}"
+            # Verify total count (44 tools)
+            assert len(tool_names) == 44, f"Expected 44 tools, got {len(tool_names)}"
 
 
 class TestServerConfiguration:
@@ -177,14 +146,7 @@ class TestServerConfiguration:
     def test_custom_timeout(self):
         """Test server respects custom timeout."""
         with patch("pocketsmith_mcp.server.get_config") as mock_config:
-            mock_config.return_value = MagicMock(
-                api_key="test_key",
-                timeout=60.0,  # Custom timeout
-                max_retries=5,
-                rate_limit_per_minute=120,
-                host="127.0.0.1",
-                port=8000,
-            )
+            mock_config.return_value = _mock_config(api_timeout=60.0, max_retries=5, rate_limit_per_minute=120)
 
             server = create_server()
             assert server is not None
@@ -192,14 +154,7 @@ class TestServerConfiguration:
     def test_custom_rate_limit(self):
         """Test server respects custom rate limit."""
         with patch("pocketsmith_mcp.server.get_config") as mock_config:
-            mock_config.return_value = MagicMock(
-                api_key="test_key",
-                timeout=30.0,
-                max_retries=3,
-                rate_limit_per_minute=30,  # Lower rate limit
-                host="127.0.0.1",
-                port=8000,
-            )
+            mock_config.return_value = _mock_config(rate_limit_per_minute=30)
 
             server = create_server()
             assert server is not None

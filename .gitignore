@@ -175,4 +175,7 @@ logs/
 
 # Development
 dev/
-PRPs.venv.nosync/
+PRPs
+.venv.nosync/
+docs/superpowers/
+.venv 2

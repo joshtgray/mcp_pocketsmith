@@ -19,10 +19,10 @@ def mock_client():
 
 
 @pytest.fixture
-def mcp_with_tools(mock_client):
+def mcp_with_tools(mock_client, user_ctx):
     """Create FastMCP instance with category rules tools registered."""
     mcp = FastMCP("test-pocketsmith")
-    register_category_rules_tools(mcp, mock_client)
+    register_category_rules_tools(mcp, mock_client, user_ctx)
     return mcp, mock_client
 
 
@@ -38,10 +38,10 @@ class TestListCategoryRules:
         client.get.return_value = [sample_category_rule, sample_category_rule]
 
         tool = mcp._tool_manager._tools.get("list_category_rules")
-        result = await tool.fn(user_id=192054)
+        result = await tool.fn()
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with("/users/192054/category_rules")
+        client.get.assert_called_once_with("/users/42/category_rules")
         assert len(result_data) == 2
         assert result_data[0]["id"] == sample_category_rule["id"]
         assert result_data[0]["payee_matches"] == sample_category_rule["payee_matches"]
@@ -53,10 +53,10 @@ class TestListCategoryRules:
         client.get.return_value = []
 
         tool = mcp._tool_manager._tools.get("list_category_rules")
-        result = await tool.fn(user_id=192054)
+        result = await tool.fn()
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with("/users/192054/category_rules")
+        client.get.assert_called_once_with("/users/42/category_rules")
         assert result_data == []
 
 
@@ -141,7 +141,7 @@ class TestCreateCategoryRule:
         tool = mcp._tool_manager._tools.get("list_category_rules")
 
         with pytest.raises(ValueError, match="Failed to list category rules"):
-            await tool.fn(user_id=192054)
+            await tool.fn()
 
     @pytest.mark.asyncio
     async def test_create_category_rule_error(self, mcp_with_tools):

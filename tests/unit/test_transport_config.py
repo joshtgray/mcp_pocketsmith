@@ -1,7 +1,7 @@
 """Tests for HTTP/SSE transport configuration."""
 
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
@@ -95,6 +95,7 @@ class TestServerCreation:
             create_server()
             mock_fastmcp.assert_called_once_with(
                 "pocketsmith-mcp",
+                lifespan=ANY,
                 host="0.0.0.0",
                 port=3401,
             )
