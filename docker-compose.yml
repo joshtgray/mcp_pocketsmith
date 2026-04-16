@@ -1,0 +1,13 @@
+services:
+  pocketsmith-mcp:
+    build: .
+    image: pocketsmith-mcp
+    container_name: pocketsmith-mcp
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - MCP_TRANSPORT=sse
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=3401
+    ports:
+      - "3401:3401"
