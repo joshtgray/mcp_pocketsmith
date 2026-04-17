@@ -43,7 +43,7 @@ class TestListTransactions:
 
         client.get.assert_called_once_with(
             "/users/42/transactions",
-            params={"page": 1}
+            params={"page": 1, "per_page": 1000}
         )
         assert len(result_data) == 1
         assert result_data[0]["id"] == sample_transaction["id"]
@@ -64,6 +64,7 @@ class TestListTransactions:
             "/users/42/transactions",
             params={
                 "page": 1,
+                "per_page": 1000,
                 "start_date": "2024-01-01",
                 "end_date": "2024-01-31"
             }
@@ -80,7 +81,7 @@ class TestListTransactions:
 
         client.get.assert_called_once_with(
             "/users/42/transactions",
-            params={"page": 1, "search": "coffee"}
+            params={"page": 1, "per_page": 1000, "search": "coffee"}
         )
 
     @pytest.mark.asyncio
@@ -94,7 +95,7 @@ class TestListTransactions:
 
         client.get.assert_called_once_with(
             "/users/42/transactions",
-            params={"page": 1, "uncategorised": 1}
+            params={"page": 1, "per_page": 1000, "uncategorised": 1}
         )
 
     @pytest.mark.asyncio
@@ -108,7 +109,7 @@ class TestListTransactions:
 
         client.get.assert_called_once_with(
             "/users/42/transactions",
-            params={"page": 1, "needs_review": 1}
+            params={"page": 1, "per_page": 1000, "needs_review": 1}
         )
 
 
@@ -324,7 +325,9 @@ class TestListTransactionsByAccount:
         result = await tool.fn(account_id=10)
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with("/accounts/10/transactions", params={"page": 1})
+        client.get.assert_called_once_with(
+            "/accounts/10/transactions", params={"page": 1, "per_page": 1000}
+        )
         assert len(result_data) == 1
 
     @pytest.mark.asyncio
@@ -338,7 +341,10 @@ class TestListTransactionsByAccount:
 
         client.get.assert_called_once_with(
             "/accounts/10/transactions",
-            params={"page": 1, "start_date": "2024-01-01", "end_date": "2024-01-31"},
+            params={
+                "page": 1, "per_page": 1000,
+                "start_date": "2024-01-01", "end_date": "2024-01-31",
+            },
         )
 
     @pytest.mark.asyncio
@@ -364,7 +370,7 @@ class TestListTransactionsByTransactionAccount:
         result_data = json.loads(result)
 
         client.get.assert_called_once_with(
-            "/transaction_accounts/20/transactions", params={"page": 1}
+            "/transaction_accounts/20/transactions", params={"page": 1, "per_page": 1000}
         )
         assert len(result_data) == 1
 
@@ -379,7 +385,7 @@ class TestListTransactionsByTransactionAccount:
 
         client.get.assert_called_once_with(
             "/transaction_accounts/20/transactions",
-            params={"page": 1, "search": "coffee"},
+            params={"page": 1, "per_page": 1000, "search": "coffee"},
         )
 
     @pytest.mark.asyncio
@@ -404,7 +410,9 @@ class TestListTransactionsByCategory:
         result = await tool.fn(category_id=5)
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with("/categories/5/transactions", params={"page": 1})
+        client.get.assert_called_once_with(
+            "/categories/5/transactions", params={"page": 1, "per_page": 1000}
+        )
         assert len(result_data) == 1
 
     @pytest.mark.asyncio
@@ -418,7 +426,7 @@ class TestListTransactionsByCategory:
 
         client.get.assert_called_once_with(
             "/categories/5/transactions",
-            params={"page": 1, "uncategorised": 1},
+            params={"page": 1, "per_page": 1000, "uncategorised": 1},
         )
 
     @pytest.mark.asyncio
@@ -464,3 +472,129 @@ class TestTransactionIdValidation:
         tool = mcp._tool_manager._tools.get("delete_transaction")
         with pytest.raises(ValueError, match="transaction_id must be a positive integer"):
             await tool.fn(transaction_id=0)
+
+
+class TestListTransactionsPerPage:
+    """Tests for per_page parameter on all transaction list tools."""
+
+    @pytest.mark.asyncio
+    async def test_list_transactions_custom_per_page(self, mcp_with_tools, sample_transaction):
+        """list_transactions should pass custom per_page value."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_transaction]
+
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        await tool.fn(per_page=100)
+
+        client.get.assert_called_once_with(
+            "/users/42/transactions",
+            params={"page": 1, "per_page": 100},
+        )
+
+    @pytest.mark.asyncio
+    async def test_list_transactions_per_page_too_low(self, mcp_with_tools):
+        """list_transactions should reject per_page below 10."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        with pytest.raises(ValueError, match="per_page must be between 10 and 1000"):
+            await tool.fn(per_page=5)
+
+    @pytest.mark.asyncio
+    async def test_list_transactions_per_page_too_high(self, mcp_with_tools):
+        """list_transactions should reject per_page above 1000."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        with pytest.raises(ValueError, match="per_page must be between 10 and 1000"):
+            await tool.fn(per_page=1001)
+
+    @pytest.mark.asyncio
+    async def test_list_by_account_custom_per_page(self, mcp_with_tools, sample_transaction):
+        """list_transactions_by_account should pass custom per_page value."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_transaction]
+
+        tool = mcp._tool_manager._tools.get("list_transactions_by_account")
+        await tool.fn(account_id=10, per_page=50)
+
+        client.get.assert_called_once_with(
+            "/accounts/10/transactions",
+            params={"page": 1, "per_page": 50},
+        )
+
+    @pytest.mark.asyncio
+    async def test_list_by_account_per_page_too_low(self, mcp_with_tools):
+        """list_transactions_by_account should reject per_page below 10."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("list_transactions_by_account")
+        with pytest.raises(ValueError, match="per_page must be between 10 and 1000"):
+            await tool.fn(account_id=10, per_page=9)
+
+    @pytest.mark.asyncio
+    async def test_list_by_account_per_page_too_high(self, mcp_with_tools):
+        """list_transactions_by_account should reject per_page above 1000."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("list_transactions_by_account")
+        with pytest.raises(ValueError, match="per_page must be between 10 and 1000"):
+            await tool.fn(account_id=10, per_page=1001)
+
+    @pytest.mark.asyncio
+    async def test_list_by_transaction_account_custom_per_page(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """list_transactions_by_transaction_account should pass custom per_page value."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_transaction]
+
+        tool = mcp._tool_manager._tools.get("list_transactions_by_transaction_account")
+        await tool.fn(transaction_account_id=20, per_page=200)
+
+        client.get.assert_called_once_with(
+            "/transaction_accounts/20/transactions",
+            params={"page": 1, "per_page": 200},
+        )
+
+    @pytest.mark.asyncio
+    async def test_list_by_transaction_account_per_page_too_low(self, mcp_with_tools):
+        """list_transactions_by_transaction_account should reject per_page below 10."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("list_transactions_by_transaction_account")
+        with pytest.raises(ValueError, match="per_page must be between 10 and 1000"):
+            await tool.fn(transaction_account_id=20, per_page=5)
+
+    @pytest.mark.asyncio
+    async def test_list_by_transaction_account_per_page_too_high(self, mcp_with_tools):
+        """list_transactions_by_transaction_account should reject per_page above 1000."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("list_transactions_by_transaction_account")
+        with pytest.raises(ValueError, match="per_page must be between 10 and 1000"):
+            await tool.fn(transaction_account_id=20, per_page=1001)
+
+    @pytest.mark.asyncio
+    async def test_list_by_category_custom_per_page(self, mcp_with_tools, sample_transaction):
+        """list_transactions_by_category should pass custom per_page value."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_transaction]
+
+        tool = mcp._tool_manager._tools.get("list_transactions_by_category")
+        await tool.fn(category_id=5, per_page=500)
+
+        client.get.assert_called_once_with(
+            "/categories/5/transactions",
+            params={"page": 1, "per_page": 500},
+        )
+
+    @pytest.mark.asyncio
+    async def test_list_by_category_per_page_too_low(self, mcp_with_tools):
+        """list_transactions_by_category should reject per_page below 10."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("list_transactions_by_category")
+        with pytest.raises(ValueError, match="per_page must be between 10 and 1000"):
+            await tool.fn(category_id=5, per_page=9)
+
+    @pytest.mark.asyncio
+    async def test_list_by_category_per_page_too_high(self, mcp_with_tools):
+        """list_transactions_by_category should reject per_page above 1000."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("list_transactions_by_category")
+        with pytest.raises(ValueError, match="per_page must be between 10 and 1000"):
+            await tool.fn(category_id=5, per_page=1001)

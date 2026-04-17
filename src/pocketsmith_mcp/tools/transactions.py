@@ -26,6 +26,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         needs_review: bool = False,
         transaction_type: str | None = None,
         page: int = 1,
+        per_page: int = 1000,
     ) -> str:
         """
         List transactions with optional filtering.
@@ -39,12 +40,15 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             needs_review: Only show transactions needing review
             transaction_type: Filter by type ("debit" or "credit")
             page: Page number for pagination (default: 1)
+            per_page: Number of results per page (10-1000, default: 1000)
 
         Returns:
             JSON array of transactions
         """
         try:
-            params: dict[str, Any] = {"page": page}
+            if not 10 <= per_page <= 1000:
+                raise ValueError("per_page must be between 10 and 1000")
+            params: dict[str, Any] = {"page": page, "per_page": per_page}
             if start_date:
                 params["start_date"] = start_date
             if end_date:
@@ -258,6 +262,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         needs_review: bool = False,
         transaction_type: str | None = None,
         page: int = 1,
+        per_page: int = 1000,
     ) -> str:
         """
         List transactions for a specific account.
@@ -272,13 +277,16 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             needs_review: Only show transactions needing review
             transaction_type: Filter by type ("debit" or "credit")
             page: Page number for pagination (default: 1)
+            per_page: Number of results per page (10-1000, default: 1000)
 
         Returns:
             JSON array of transactions
         """
         try:
             validate_id(account_id, "account_id")
-            params: dict[str, Any] = {"page": page}
+            if not 10 <= per_page <= 1000:
+                raise ValueError("per_page must be between 10 and 1000")
+            params: dict[str, Any] = {"page": page, "per_page": per_page}
             if start_date:
                 params["start_date"] = start_date
             if end_date:
@@ -311,6 +319,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         needs_review: bool = False,
         transaction_type: str | None = None,
         page: int = 1,
+        per_page: int = 1000,
     ) -> str:
         """
         List transactions for a specific transaction account.
@@ -325,13 +334,16 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             needs_review: Only show transactions needing review
             transaction_type: Filter by type ("debit" or "credit")
             page: Page number for pagination (default: 1)
+            per_page: Number of results per page (10-1000, default: 1000)
 
         Returns:
             JSON array of transactions
         """
         try:
             validate_id(transaction_account_id, "transaction_account_id")
-            params: dict[str, Any] = {"page": page}
+            if not 10 <= per_page <= 1000:
+                raise ValueError("per_page must be between 10 and 1000")
+            params: dict[str, Any] = {"page": page, "per_page": per_page}
             if start_date:
                 params["start_date"] = start_date
             if end_date:
@@ -369,6 +381,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         needs_review: bool = False,
         transaction_type: str | None = None,
         page: int = 1,
+        per_page: int = 1000,
     ) -> str:
         """
         List transactions for a specific category.
@@ -387,13 +400,16 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             needs_review: Only show transactions needing review
             transaction_type: Filter by type ("debit" or "credit")
             page: Page number for pagination (default: 1)
+            per_page: Number of results per page (10-1000, default: 1000)
 
         Returns:
             JSON array of transactions
         """
         try:
             validate_id(category_id, "category_id")
-            params: dict[str, Any] = {"page": page}
+            if not 10 <= per_page <= 1000:
+                raise ValueError("per_page must be between 10 and 1000")
+            params: dict[str, Any] = {"page": page, "per_page": per_page}
             if start_date:
                 params["start_date"] = start_date
             if end_date:

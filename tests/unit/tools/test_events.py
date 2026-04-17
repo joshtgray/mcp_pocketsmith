@@ -47,7 +47,7 @@ class TestListEvents:
 
     @pytest.mark.asyncio
     async def test_list_events_basic(self, mcp_with_tools, sample_event):
-        """Test basic event listing."""
+        """Test basic event listing with default pagination."""
         mcp, client = mcp_with_tools
         client.get.return_value = [sample_event]
 
@@ -57,7 +57,12 @@ class TestListEvents:
 
         client.get.assert_called_once_with(
             "/users/42/events",
-            params={"start_date": "2024-01-01", "end_date": "2024-12-31"}
+            params={
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "per_page": 1000,
+                "page": 1,
+            },
         )
         assert len(result_data) == 1
 
@@ -75,8 +80,75 @@ class TestListEvents:
 
         client.get.assert_called_once_with(
             "/users/42/events",
-            params={"start_date": "2024-01-01", "end_date": "2024-12-31"}
+            params={
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "per_page": 1000,
+                "page": 1,
+            },
         )
+
+    @pytest.mark.asyncio
+    async def test_list_events_custom_per_page(self, mcp_with_tools, sample_event):
+        """Test list_events with custom per_page value."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_event]
+
+        tool = mcp._tool_manager._tools.get("list_events")
+        await tool.fn(start_date="2024-01-01", end_date="2024-12-31", per_page=100)
+
+        client.get.assert_called_once_with(
+            "/users/42/events",
+            params={
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "per_page": 100,
+                "page": 1,
+            },
+        )
+
+    @pytest.mark.asyncio
+    async def test_list_events_custom_page(self, mcp_with_tools, sample_event):
+        """Test list_events with custom page value."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_event]
+
+        tool = mcp._tool_manager._tools.get("list_events")
+        await tool.fn(start_date="2024-01-01", end_date="2024-12-31", page=2)
+
+        client.get.assert_called_once_with(
+            "/users/42/events",
+            params={
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "per_page": 1000,
+                "page": 2,
+            },
+        )
+
+    @pytest.mark.asyncio
+    async def test_list_events_per_page_too_low(self, mcp_with_tools):
+        """Test per_page below minimum raises ValueError."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("list_events")
+        with pytest.raises(ValueError, match="per_page must be between 10 and 1000"):
+            await tool.fn(start_date="2024-01-01", end_date="2024-12-31", per_page=5)
+
+    @pytest.mark.asyncio
+    async def test_list_events_per_page_too_high(self, mcp_with_tools):
+        """Test per_page above maximum raises ValueError."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("list_events")
+        with pytest.raises(ValueError, match="per_page must be between 10 and 1000"):
+            await tool.fn(start_date="2024-01-01", end_date="2024-12-31", per_page=1001)
+
+    @pytest.mark.asyncio
+    async def test_list_events_page_too_low(self, mcp_with_tools):
+        """Test page below 1 raises ValueError."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("list_events")
+        with pytest.raises(ValueError, match="page must be >= 1"):
+            await tool.fn(start_date="2024-01-01", end_date="2024-12-31", page=0)
 
 
 class TestGetEvent:
@@ -229,7 +301,7 @@ class TestListScenarioEvents:
 
     @pytest.mark.asyncio
     async def test_list_scenario_events_basic(self, mcp_with_tools, sample_event):
-        """Test basic scenario event listing."""
+        """Test basic scenario event listing with default pagination."""
         mcp, client = mcp_with_tools
         client.get.return_value = [sample_event]
 
@@ -243,9 +315,58 @@ class TestListScenarioEvents:
 
         client.get.assert_called_once_with(
             "/scenarios/200/events",
-            params={"start_date": "2024-01-01", "end_date": "2024-12-31"},
+            params={
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "per_page": 1000,
+                "page": 1,
+            },
         )
         assert len(result_data) == 1
+
+    @pytest.mark.asyncio
+    async def test_list_scenario_events_pagination(self, mcp_with_tools, sample_event):
+        """Test list_scenario_events with custom pagination."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = [sample_event]
+
+        tool = mcp._tool_manager._tools.get("list_scenario_events")
+        await tool.fn(
+            scenario_id=200,
+            start_date="2024-01-01",
+            end_date="2024-12-31",
+            per_page=50,
+            page=3,
+        )
+
+        client.get.assert_called_once_with(
+            "/scenarios/200/events",
+            params={
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "per_page": 50,
+                "page": 3,
+            },
+        )
+
+    @pytest.mark.asyncio
+    async def test_list_scenario_events_per_page_validation(self, mcp_with_tools):
+        """Test per_page validation on list_scenario_events."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("list_scenario_events")
+        with pytest.raises(ValueError, match="per_page must be between 10 and 1000"):
+            await tool.fn(
+                scenario_id=200, start_date="2024-01-01",
+                end_date="2024-12-31", per_page=5,
+            )
+
+    @pytest.mark.asyncio
+    async def test_list_scenario_events_page_validation(self, mcp_with_tools):
+        """Test page validation on list_scenario_events."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("list_scenario_events")
+        with pytest.raises(ValueError, match="page must be >= 1"):
+            await tool.fn(scenario_id=200, start_date="2024-01-01", end_date="2024-12-31", page=0)
 
     @pytest.mark.asyncio
     async def test_list_scenario_events_empty(self, mcp_with_tools):
