@@ -131,13 +131,15 @@ class TestServerTools:
                 "list_time_zones",
                 # Bulk tools
                 "bulk_update_transactions",
+                # Scenario tools
+                "list_scenarios",
             ]
 
             for tool_name in expected_tools:
                 assert tool_name in tool_names, f"Tool '{tool_name}' not registered"
 
-            # Verify total count (44 tools)
-            assert len(tool_names) == 44, f"Expected 44 tools, got {len(tool_names)}"
+            # Verify total count (45 tools)
+            assert len(tool_names) == 45, f"Expected 45 tools, got {len(tool_names)}"
 
 
 class TestServerConfiguration:

@@ -12,6 +12,7 @@ from pocketsmith_mcp.tools.category_rules import register_category_rules_tools
 from pocketsmith_mcp.tools.events import register_event_tools
 from pocketsmith_mcp.tools.institutions import register_institution_tools
 from pocketsmith_mcp.tools.labels import register_label_tools
+from pocketsmith_mcp.tools.scenarios import register_scenario_tools
 from pocketsmith_mcp.tools.transaction_accounts import register_transaction_account_tools
 from pocketsmith_mcp.tools.transactions import register_transaction_tools
 from pocketsmith_mcp.tools.users import register_user_tools
@@ -41,6 +42,7 @@ def register_all_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserCo
     register_label_tools(mcp, client, user_ctx)           # 2 tools
     register_utility_tools(mcp, client)                   # 3 tools (no user_id needed)
     register_bulk_transaction_tools(mcp, client)          # 1 tool
+    register_scenario_tools(mcp, client, user_ctx)        # 1 tool
 
 
 __all__ = ["register_all_tools"]

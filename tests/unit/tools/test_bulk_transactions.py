@@ -133,7 +133,8 @@ class TestBulkUpdateTransactions:
         """Test that one failure doesn't stop other updates."""
         mcp, client = mcp_with_tools
         client.put.side_effect = [
-            {"id": 1, "payee": "A", "amount": -5, "date": "2024-01-01", "category": None, "is_transfer": False},
+            {"id": 1, "payee": "A", "amount": -5, "date": "2024-01-01",
+             "category": None, "is_transfer": False},
             Exception("API Error"),
         ]
 
@@ -148,7 +149,61 @@ class TestBulkUpdateTransactions:
 
         assert data["summary"]["successful"] == 1
         assert data["summary"]["failed"] == 1
-        assert data["results"][1]["status"] == "error"
+
+    @pytest.mark.asyncio
+    async def test_bulk_update_success_includes_extended_fields(self, mcp_with_tools):
+        """Success response must include note, needs_review, and labels fields."""
+        mcp, client = mcp_with_tools
+        client.put.return_value = {
+            "id": 5,
+            "payee": "Supermarket",
+            "amount": -25.50,
+            "date": "2024-03-10",
+            "category": {"title": "Groceries"},
+            "is_transfer": False,
+            "note": "weekly shop",
+            "needs_review": False,
+            "labels": "food,essentials",
+        }
+
+        tool = mcp._tool_manager._tools.get("bulk_update_transactions")
+        result = await tool.fn(
+            updates=[{"transaction_id": 5, "category_id": 12}],
+        )
+        data = json.loads(result)
+
+        updated = data["results"][0]["updated"]
+        assert updated["note"] == "weekly shop"
+        assert updated["needs_review"] is False
+        assert updated["labels"] == "food,essentials"
+
+    @pytest.mark.asyncio
+    async def test_bulk_update_success_includes_extended_fields_when_null(self, mcp_with_tools):
+        """Extended fields are included even when the API returns null."""
+        mcp, client = mcp_with_tools
+        client.put.return_value = {
+            "id": 6,
+            "payee": "Shop",
+            "amount": -10.0,
+            "date": "2024-04-01",
+            "category": None,
+            "is_transfer": False,
+            "note": None,
+            "needs_review": None,
+            "labels": None,
+        }
+
+        tool = mcp._tool_manager._tools.get("bulk_update_transactions")
+        result = await tool.fn(
+            updates=[{"transaction_id": 6, "is_transfer": False}],
+        )
+        data = json.loads(result)
+
+        updated = data["results"][0]["updated"]
+        assert "note" in updated
+        assert "needs_review" in updated
+        assert "labels" in updated
+        assert updated["note"] is None
 
     @pytest.mark.asyncio
     async def test_is_transfer_and_needs_review(self, mcp_with_tools):

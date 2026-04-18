@@ -45,7 +45,7 @@ def register_bulk_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> 
         if len(updates) > 100:
             raise ValueError("Maximum 100 updates per call")
 
-        results = []
+        results: list[dict[str, Any]] = []
         successful = 0
         failed = 0
         skipped = 0
@@ -114,6 +114,10 @@ def register_bulk_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> 
                         f"/transactions/{transaction_id}",
                         json_data=body,
                     )
+                    if not isinstance(updated, dict):
+                        raise ValueError(
+                            f"Unexpected API response type for transaction {transaction_id}"
+                        )
                     successful += 1
                     results.append({
                         "transaction_id": transaction_id,
@@ -123,8 +127,15 @@ def register_bulk_transaction_tools(mcp: FastMCP, client: PocketSmithClient) -> 
                             "payee": updated.get("payee"),
                             "amount": updated.get("amount"),
                             "date": updated.get("date"),
-                            "category": updated.get("category", {}).get("title") if updated.get("category") else None,
+                            "category": (
+                                updated.get("category", {}).get("title")
+                                if updated.get("category")
+                                else None
+                            ),
                             "is_transfer": updated.get("is_transfer"),
+                            "note": updated.get("note"),
+                            "needs_review": updated.get("needs_review"),
+                            "labels": updated.get("labels"),
                         },
                     })
 
