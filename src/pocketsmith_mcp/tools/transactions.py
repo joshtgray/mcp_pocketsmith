@@ -214,7 +214,16 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             if cheque_number is not None:
                 body["cheque_number"] = cheque_number
             if labels is not None:
-                body["labels"] = ",".join(labels)
+                stripped_labels = [lbl.strip() for lbl in labels]
+                filtered_labels = [lbl for lbl in stripped_labels if lbl]
+                for label in filtered_labels:
+                    if "," in label:
+                        raise ValueError(
+                            f"Label '{label}' contains a comma, which is not allowed "
+                            "(labels are comma-separated in the PocketSmith API)"
+                        )
+                if filtered_labels:
+                    body["labels"] = ",".join(filtered_labels)
 
             result = await client.post(
                 f"/transaction_accounts/{transaction_account_id}/transactions",
@@ -283,7 +292,16 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             if is_transfer is not None:
                 body["is_transfer"] = is_transfer
             if labels is not None:
-                body["labels"] = ",".join(labels)
+                stripped_labels = [lbl.strip() for lbl in labels]
+                filtered_labels = [lbl for lbl in stripped_labels if lbl]
+                for label in filtered_labels:
+                    if "," in label:
+                        raise ValueError(
+                            f"Label '{label}' contains a comma, which is not allowed "
+                            "(labels are comma-separated in the PocketSmith API)"
+                        )
+                if filtered_labels:
+                    body["labels"] = ",".join(filtered_labels)
             if needs_review is not None:
                 body["needs_review"] = needs_review
             if splits is not None:

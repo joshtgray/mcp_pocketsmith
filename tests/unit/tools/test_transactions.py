@@ -282,6 +282,156 @@ class TestUpdateTransactionLabels:
         assert call_args[1]["json_data"]["labels"] == "food"
 
 
+class TestCreateTransactionLabelValidation:
+    """Tests for label comma validation in create_transaction."""
+
+    @pytest.mark.asyncio
+    async def test_label_with_comma_raises(self, mcp_with_tools):
+        """create_transaction should reject labels containing commas."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("create_transaction")
+        with pytest.raises(ValueError, match="contains a comma"):
+            await tool.fn(
+                transaction_account_id=789,
+                payee="Starbucks",
+                amount=-5.50,
+                date="2024-01-15",
+                labels=["food,drink"],
+            )
+
+    @pytest.mark.asyncio
+    async def test_labels_whitespace_stripped(self, mcp_with_tools, sample_transaction):
+        """create_transaction should strip leading/trailing whitespace from labels."""
+        mcp, client = mcp_with_tools
+        client.post.return_value = sample_transaction
+
+        tool = mcp._tool_manager._tools.get("create_transaction")
+        await tool.fn(
+            transaction_account_id=789,
+            payee="Starbucks",
+            amount=-5.50,
+            date="2024-01-15",
+            labels=[" coffee ", " work"],
+        )
+
+        call_args = client.post.call_args
+        assert call_args[1]["json_data"]["labels"] == "coffee,work"
+
+    @pytest.mark.asyncio
+    async def test_labels_valid_unchanged(self, mcp_with_tools, sample_transaction):
+        """create_transaction should pass valid labels through unchanged."""
+        mcp, client = mcp_with_tools
+        client.post.return_value = sample_transaction
+
+        tool = mcp._tool_manager._tools.get("create_transaction")
+        await tool.fn(
+            transaction_account_id=789,
+            payee="Starbucks",
+            amount=-5.50,
+            date="2024-01-15",
+            labels=["food", "work"],
+        )
+
+        call_args = client.post.call_args
+        assert call_args[1]["json_data"]["labels"] == "food,work"
+
+    @pytest.mark.asyncio
+    async def test_whitespace_only_label_excluded(self, mcp_with_tools, sample_transaction):
+        """create_transaction should exclude whitespace-only labels (empty after strip)."""
+        mcp, client = mcp_with_tools
+        client.post.return_value = sample_transaction
+
+        tool = mcp._tool_manager._tools.get("create_transaction")
+        await tool.fn(
+            transaction_account_id=789,
+            payee="Starbucks",
+            amount=-5.50,
+            date="2024-01-15",
+            labels=[" "],
+        )
+
+        call_args = client.post.call_args
+        assert "labels" not in call_args[1]["json_data"]
+
+    @pytest.mark.asyncio
+    async def test_mixed_labels_whitespace_only_filtered(self, mcp_with_tools, sample_transaction):
+        """create_transaction should filter whitespace-only entries from a mixed list."""
+        mcp, client = mcp_with_tools
+        client.post.return_value = sample_transaction
+
+        tool = mcp._tool_manager._tools.get("create_transaction")
+        await tool.fn(
+            transaction_account_id=789,
+            payee="Starbucks",
+            amount=-5.50,
+            date="2024-01-15",
+            labels=["food", " ", "groceries"],
+        )
+
+        call_args = client.post.call_args
+        assert call_args[1]["json_data"]["labels"] == "food,groceries"
+
+
+class TestUpdateTransactionLabelValidation:
+    """Tests for label comma validation in update_transaction."""
+
+    @pytest.mark.asyncio
+    async def test_label_with_comma_raises(self, mcp_with_tools):
+        """update_transaction should reject labels containing commas."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("update_transaction")
+        with pytest.raises(ValueError, match="contains a comma"):
+            await tool.fn(transaction_id=456, labels=["food,drink"])
+
+    @pytest.mark.asyncio
+    async def test_labels_whitespace_stripped(self, mcp_with_tools, sample_transaction):
+        """update_transaction should strip leading/trailing whitespace from labels."""
+        mcp, client = mcp_with_tools
+        client.put.return_value = sample_transaction
+
+        tool = mcp._tool_manager._tools.get("update_transaction")
+        await tool.fn(transaction_id=456, labels=[" foo ", "bar "])
+
+        call_args = client.put.call_args
+        assert call_args[1]["json_data"]["labels"] == "foo,bar"
+
+    @pytest.mark.asyncio
+    async def test_labels_valid_unchanged(self, mcp_with_tools, sample_transaction):
+        """update_transaction should pass valid labels through unchanged."""
+        mcp, client = mcp_with_tools
+        client.put.return_value = sample_transaction
+
+        tool = mcp._tool_manager._tools.get("update_transaction")
+        await tool.fn(transaction_id=456, labels=["food", "work"])
+
+        call_args = client.put.call_args
+        assert call_args[1]["json_data"]["labels"] == "food,work"
+
+    @pytest.mark.asyncio
+    async def test_whitespace_only_label_excluded(self, mcp_with_tools, sample_transaction):
+        """update_transaction should exclude whitespace-only labels (empty after strip)."""
+        mcp, client = mcp_with_tools
+        client.put.return_value = sample_transaction
+
+        tool = mcp._tool_manager._tools.get("update_transaction")
+        await tool.fn(transaction_id=456, labels=[" "], needs_review=False)
+
+        call_args = client.put.call_args
+        assert "labels" not in call_args[1]["json_data"]
+
+    @pytest.mark.asyncio
+    async def test_mixed_labels_whitespace_only_filtered(self, mcp_with_tools, sample_transaction):
+        """update_transaction should filter whitespace-only entries from a mixed list."""
+        mcp, client = mcp_with_tools
+        client.put.return_value = sample_transaction
+
+        tool = mcp._tool_manager._tools.get("update_transaction")
+        await tool.fn(transaction_id=456, labels=["food", " ", "groceries"])
+
+        call_args = client.put.call_args
+        assert call_args[1]["json_data"]["labels"] == "food,groceries"
+
+
 class TestUpdateTransactionSplits:
     """Tests for splits support in update_transaction."""
 

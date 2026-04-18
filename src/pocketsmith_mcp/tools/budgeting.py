@@ -10,6 +10,8 @@ from pocketsmith_mcp.user_context import UserContext
 
 logger = get_logger("tools.budgeting")
 
+VALID_PERIODS = {"weeks", "months", "years", "event"}
+
 
 def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
     """Register budgeting-related MCP tools."""
@@ -68,6 +70,10 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: 
             forecast amounts, and over/under by category
         """
         try:
+            if period not in VALID_PERIODS:
+                raise ValueError(
+                    f"Invalid period '{period}'. Must be one of: {', '.join(sorted(VALID_PERIODS))}"
+                )
             params = {
                 "start_date": start_date,
                 "end_date": end_date,
@@ -116,6 +122,10 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: 
             spending breakdown
         """
         try:
+            if period not in VALID_PERIODS:
+                raise ValueError(
+                    f"Invalid period '{period}'. Must be one of: {', '.join(sorted(VALID_PERIODS))}"
+                )
             params = {
                 "start_date": start_date,
                 "end_date": end_date,

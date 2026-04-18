@@ -33,8 +33,8 @@ class APIError(PocketSmithError):
         base = f"[HTTP {self.status_code}] {self.message}"
         if self.response_body:
             body = self.response_body
-            if len(body) > 200:
-                body = body[:200] + "... (truncated)"
+            if len(body) > 1000:
+                body = body[:1000] + "... (truncated)"
             return f"{base}: {body}"
         return base
 

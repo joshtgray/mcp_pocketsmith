@@ -38,12 +38,31 @@ class TestAPIErrorTruncation:
         assert str(err) == "[HTTP 500] Server error: short error"
 
     def test_long_body_truncated(self):
-        """Response bodies over 200 chars are truncated in str()."""
-        long_body = "x" * 300
+        """Response bodies over 1000 chars are truncated in str()."""
+        long_body = "x" * 1100
         err = APIError("Server error", status_code=500, response_body=long_body)
         result = str(err)
-        assert len(result) < 300
+        assert len(result) < 1100
         assert result.endswith("... (truncated)")
+
+    def test_body_at_limit_not_truncated(self):
+        """Response body exactly 1000 chars is shown in full."""
+        body = "x" * 1000
+        err = APIError("Server error", status_code=500, response_body=body)
+        result = str(err)
+        assert "... (truncated)" not in result
+        assert body in result
+
+    def test_body_over_limit_truncated_at_1000(self):
+        """Response body of 1001 chars is truncated at 1000."""
+        body = "x" * 1001
+        err = APIError("Server error", status_code=500, response_body=body)
+        result = str(err)
+        assert result.endswith("... (truncated)")
+        # The truncated body portion should be exactly 1000 chars
+        prefix = "[HTTP 500] Server error: "
+        truncated_body = result[len(prefix):]
+        assert truncated_body == "x" * 1000 + "... (truncated)"
 
     def test_full_body_still_on_attribute(self):
         """Full response body remains accessible on the attribute."""

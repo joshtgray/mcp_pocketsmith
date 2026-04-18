@@ -118,6 +118,76 @@ class TestGetTrendAnalysis:
         assert "periods" in result_data
 
 
+class TestGetBudgetSummaryPeriodValidation:
+    """Tests for period parameter validation in get_budget_summary."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("period", ["weeks", "months", "years", "event"])
+    async def test_valid_periods(self, mcp_with_tools, period):
+        """get_budget_summary should accept all valid period values."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = {"total_income": 0.0}
+
+        tool = mcp._tool_manager._tools.get("get_budget_summary")
+        result = await tool.fn(
+            start_date="2024-01-01",
+            end_date="2024-01-31",
+            period=period,
+            interval=1,
+        )
+        assert json.loads(result) is not None
+
+    @pytest.mark.asyncio
+    async def test_invalid_period_raises(self, mcp_with_tools):
+        """get_budget_summary should reject invalid period values."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("get_budget_summary")
+        with pytest.raises(ValueError, match="Invalid period 'biweekly'"):
+            await tool.fn(
+                start_date="2024-01-01",
+                end_date="2024-01-31",
+                period="biweekly",
+                interval=1,
+            )
+
+
+class TestGetTrendAnalysisPeriodValidation:
+    """Tests for period parameter validation in get_trend_analysis."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("period", ["weeks", "months", "years", "event"])
+    async def test_valid_periods(self, mcp_with_tools, period):
+        """get_trend_analysis should accept all valid period values."""
+        mcp, client = mcp_with_tools
+        client.get.return_value = {"periods": []}
+
+        tool = mcp._tool_manager._tools.get("get_trend_analysis")
+        result = await tool.fn(
+            start_date="2024-01-01",
+            end_date="2024-12-31",
+            period=period,
+            interval=1,
+            categories="100",
+            scenarios="200",
+        )
+        assert json.loads(result) is not None
+
+    @pytest.mark.asyncio
+    async def test_invalid_period_raises(self, mcp_with_tools):
+        """get_trend_analysis should reject invalid period values."""
+        mcp, _client = mcp_with_tools
+        tool = mcp._tool_manager._tools.get("get_trend_analysis")
+        with pytest.raises(ValueError, match="Invalid period 'quarterly'"):
+            await tool.fn(
+                start_date="2024-01-01",
+                end_date="2024-12-31",
+                period="quarterly",
+                interval=1,
+                categories="100",
+                scenarios="200",
+            )
+
+
 class TestClearForecastCache:
     """Tests for clear_forecast_cache tool."""
 
