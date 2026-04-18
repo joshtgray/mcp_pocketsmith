@@ -5,12 +5,77 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from pocketsmith_mcp.client.api_client import PocketSmithClient
+from pocketsmith_mcp.client.api_client import PaginatedResponse, PocketSmithClient
 from pocketsmith_mcp.errors import validate_id
 from pocketsmith_mcp.logger import get_logger
 from pocketsmith_mcp.user_context import UserContext
 
 logger = get_logger("tools.transactions")
+
+
+def _build_transaction_response(
+    resp: PaginatedResponse,
+    per_page: int,
+    page: int,
+) -> Any:
+    """
+    Build the tool response for a transaction list result.
+
+    Returns a plain list when there is no truncation risk, or a dict with
+    ``data`` + ``_pagination`` metadata when pagination headers indicate more
+    results exist, or when the response is exactly ``per_page`` items (heuristic
+    fallback when the API omits pagination headers).
+    """
+    data = resp.data
+
+    # Definitive: has_next signals more pages exist.
+    if resp.has_next:
+        return {
+            "data": data,
+            "_pagination": {
+                "total": resp.total,
+                "per_page": per_page,
+                "page": page,
+                "has_more": True,
+            },
+        }
+
+    # has_next is False from here.
+
+    # Total is known and fits within one page — no truncation possible.
+    if resp.total is not None and resp.total <= per_page:
+        return data
+
+    # Fewer than per_page results — clearly a complete (partial) page.
+    if isinstance(data, list) and len(data) < per_page:
+        return data
+
+    # Exactly per_page results — potential truncation.
+    if isinstance(data, list) and len(data) == per_page:
+        if resp.total is not None:
+            return {
+                "data": data,
+                "_pagination": {
+                    "total": resp.total,
+                    "per_page": per_page,
+                    "page": page,
+                    "has_more": False,
+                },
+            }
+        return {
+            "data": data,
+            "_pagination": {
+                "per_page": per_page,
+                "page": page,
+                "has_more": None,
+                "_warning": (
+                    "Received exactly per_page results. More results may exist. "
+                    "Use page parameter to fetch additional pages."
+                ),
+            },
+        }
+
+    return data
 
 
 def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
@@ -31,6 +96,11 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         """
         List transactions with optional filtering.
 
+        When there is a risk of truncation, returns a JSON object with ``data``
+        (array of transactions) and ``_pagination`` metadata. When results are
+        clearly complete (fewer than per_page items and no pagination headers),
+        returns a plain JSON array.
+
         Args:
             start_date: Filter transactions on/after date (YYYY-MM-DD)
             end_date: Filter transactions on/before date (YYYY-MM-DD)
@@ -43,7 +113,8 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             per_page: Number of results per page (10-1000, default: 1000)
 
         Returns:
-            JSON array of transactions
+            JSON array of transactions, or JSON object with data + _pagination
+            when results may be truncated.
         """
         try:
             if not 10 <= per_page <= 1000:
@@ -64,8 +135,10 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             if transaction_type:
                 params["type"] = transaction_type
 
-            result = await client.get(f"/users/{user_ctx.user_id}/transactions", params=params)
-            return json.dumps(result, indent=2)
+            resp = await client.get_paginated(
+                f"/users/{user_ctx.user_id}/transactions", params=params
+            )
+            return json.dumps(_build_transaction_response(resp, per_page, page), indent=2)
         except Exception as e:
             logger.error(f"list_transactions failed: {e}")
             raise ValueError(f"Failed to list transactions: {e}")
@@ -267,6 +340,10 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         """
         List transactions for a specific account.
 
+        When there is a risk of truncation, returns a JSON object with ``data``
+        and ``_pagination`` metadata. When results are clearly complete, returns
+        a plain JSON array.
+
         Args:
             account_id: The account ID to list transactions for
             start_date: Filter transactions on/after date (YYYY-MM-DD)
@@ -280,7 +357,8 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             per_page: Number of results per page (10-1000, default: 1000)
 
         Returns:
-            JSON array of transactions
+            JSON array of transactions, or JSON object with data + _pagination
+            when results may be truncated.
         """
         try:
             validate_id(account_id, "account_id")
@@ -302,8 +380,8 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             if transaction_type:
                 params["type"] = transaction_type
 
-            result = await client.get(f"/accounts/{account_id}/transactions", params=params)
-            return json.dumps(result, indent=2)
+            resp = await client.get_paginated(f"/accounts/{account_id}/transactions", params=params)
+            return json.dumps(_build_transaction_response(resp, per_page, page), indent=2)
         except Exception as e:
             logger.error(f"list_transactions_by_account failed: {e}")
             raise ValueError(f"Failed to list transactions for account {account_id}: {e}")
@@ -324,6 +402,10 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         """
         List transactions for a specific transaction account.
 
+        When there is a risk of truncation, returns a JSON object with ``data``
+        and ``_pagination`` metadata. When results are clearly complete, returns
+        a plain JSON array.
+
         Args:
             transaction_account_id: The transaction account ID to list transactions for
             start_date: Filter transactions on/after date (YYYY-MM-DD)
@@ -337,7 +419,8 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             per_page: Number of results per page (10-1000, default: 1000)
 
         Returns:
-            JSON array of transactions
+            JSON array of transactions, or JSON object with data + _pagination
+            when results may be truncated.
         """
         try:
             validate_id(transaction_account_id, "transaction_account_id")
@@ -359,11 +442,11 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             if transaction_type:
                 params["type"] = transaction_type
 
-            result = await client.get(
+            resp = await client.get_paginated(
                 f"/transaction_accounts/{transaction_account_id}/transactions",
                 params=params,
             )
-            return json.dumps(result, indent=2)
+            return json.dumps(_build_transaction_response(resp, per_page, page), indent=2)
         except Exception as e:
             logger.error(f"list_transactions_by_transaction_account failed: {e}")
             raise ValueError(
@@ -390,6 +473,10 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         category IDs (e.g. pass multiple via the API path — use one call per
         category if multiple are needed).
 
+        When there is a risk of truncation, returns a JSON object with ``data``
+        and ``_pagination`` metadata. When results are clearly complete, returns
+        a plain JSON array.
+
         Args:
             category_id: The category ID to list transactions for
             start_date: Filter transactions on/after date (YYYY-MM-DD)
@@ -403,7 +490,8 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             per_page: Number of results per page (10-1000, default: 1000)
 
         Returns:
-            JSON array of transactions
+            JSON array of transactions, or JSON object with data + _pagination
+            when results may be truncated.
         """
         try:
             validate_id(category_id, "category_id")
@@ -425,8 +513,10 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             if transaction_type:
                 params["type"] = transaction_type
 
-            result = await client.get(f"/categories/{category_id}/transactions", params=params)
-            return json.dumps(result, indent=2)
+            resp = await client.get_paginated(
+                f"/categories/{category_id}/transactions", params=params
+            )
+            return json.dumps(_build_transaction_response(resp, per_page, page), indent=2)
         except Exception as e:
             logger.error(f"list_transactions_by_category failed: {e}")
             raise ValueError(f"Failed to list transactions for category {category_id}: {e}")

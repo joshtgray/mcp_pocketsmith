@@ -60,8 +60,6 @@ class TestListEvents:
             params={
                 "start_date": "2024-01-01",
                 "end_date": "2024-12-31",
-                "per_page": 1000,
-                "page": 1,
             },
         )
         assert len(result_data) == 1
@@ -83,72 +81,23 @@ class TestListEvents:
             params={
                 "start_date": "2024-01-01",
                 "end_date": "2024-12-31",
-                "per_page": 1000,
-                "page": 1,
             },
         )
 
     @pytest.mark.asyncio
-    async def test_list_events_custom_per_page(self, mcp_with_tools, sample_event):
-        """Test list_events with custom per_page value."""
+    async def test_list_events_no_pagination_params(self, mcp_with_tools, sample_event):
+        """list_events must not send per_page or page — the API ignores them."""
         mcp, client = mcp_with_tools
         client.get.return_value = [sample_event]
 
         tool = mcp._tool_manager._tools.get("list_events")
-        await tool.fn(start_date="2024-01-01", end_date="2024-12-31", per_page=100)
+        await tool.fn(start_date="2024-01-01", end_date="2024-12-31")
 
-        client.get.assert_called_once_with(
-            "/users/42/events",
-            params={
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
-                "per_page": 100,
-                "page": 1,
-            },
-        )
-
-    @pytest.mark.asyncio
-    async def test_list_events_custom_page(self, mcp_with_tools, sample_event):
-        """Test list_events with custom page value."""
-        mcp, client = mcp_with_tools
-        client.get.return_value = [sample_event]
-
-        tool = mcp._tool_manager._tools.get("list_events")
-        await tool.fn(start_date="2024-01-01", end_date="2024-12-31", page=2)
-
-        client.get.assert_called_once_with(
-            "/users/42/events",
-            params={
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
-                "per_page": 1000,
-                "page": 2,
-            },
-        )
-
-    @pytest.mark.asyncio
-    async def test_list_events_per_page_too_low(self, mcp_with_tools):
-        """Test per_page below minimum raises ValueError."""
-        mcp, _client = mcp_with_tools
-        tool = mcp._tool_manager._tools.get("list_events")
-        with pytest.raises(ValueError, match="per_page must be between 10 and 1000"):
-            await tool.fn(start_date="2024-01-01", end_date="2024-12-31", per_page=5)
-
-    @pytest.mark.asyncio
-    async def test_list_events_per_page_too_high(self, mcp_with_tools):
-        """Test per_page above maximum raises ValueError."""
-        mcp, _client = mcp_with_tools
-        tool = mcp._tool_manager._tools.get("list_events")
-        with pytest.raises(ValueError, match="per_page must be between 10 and 1000"):
-            await tool.fn(start_date="2024-01-01", end_date="2024-12-31", per_page=1001)
-
-    @pytest.mark.asyncio
-    async def test_list_events_page_too_low(self, mcp_with_tools):
-        """Test page below 1 raises ValueError."""
-        mcp, _client = mcp_with_tools
-        tool = mcp._tool_manager._tools.get("list_events")
-        with pytest.raises(ValueError, match="page must be >= 1"):
-            await tool.fn(start_date="2024-01-01", end_date="2024-12-31", page=0)
+        call_params = client.get.call_args[1]["params"]
+        assert "per_page" not in call_params
+        assert "page" not in call_params
+        assert call_params["start_date"] == "2024-01-01"
+        assert call_params["end_date"] == "2024-12-31"
 
 
 class TestGetEvent:
@@ -318,55 +267,24 @@ class TestListScenarioEvents:
             params={
                 "start_date": "2024-01-01",
                 "end_date": "2024-12-31",
-                "per_page": 1000,
-                "page": 1,
             },
         )
         assert len(result_data) == 1
 
     @pytest.mark.asyncio
-    async def test_list_scenario_events_pagination(self, mcp_with_tools, sample_event):
-        """Test list_scenario_events with custom pagination."""
+    async def test_list_scenario_events_no_pagination_params(self, mcp_with_tools, sample_event):
+        """list_scenario_events must not send per_page or page — the API ignores them."""
         mcp, client = mcp_with_tools
         client.get.return_value = [sample_event]
 
         tool = mcp._tool_manager._tools.get("list_scenario_events")
-        await tool.fn(
-            scenario_id=200,
-            start_date="2024-01-01",
-            end_date="2024-12-31",
-            per_page=50,
-            page=3,
-        )
+        await tool.fn(scenario_id=200, start_date="2024-01-01", end_date="2024-12-31")
 
-        client.get.assert_called_once_with(
-            "/scenarios/200/events",
-            params={
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
-                "per_page": 50,
-                "page": 3,
-            },
-        )
-
-    @pytest.mark.asyncio
-    async def test_list_scenario_events_per_page_validation(self, mcp_with_tools):
-        """Test per_page validation on list_scenario_events."""
-        mcp, _client = mcp_with_tools
-        tool = mcp._tool_manager._tools.get("list_scenario_events")
-        with pytest.raises(ValueError, match="per_page must be between 10 and 1000"):
-            await tool.fn(
-                scenario_id=200, start_date="2024-01-01",
-                end_date="2024-12-31", per_page=5,
-            )
-
-    @pytest.mark.asyncio
-    async def test_list_scenario_events_page_validation(self, mcp_with_tools):
-        """Test page validation on list_scenario_events."""
-        mcp, _client = mcp_with_tools
-        tool = mcp._tool_manager._tools.get("list_scenario_events")
-        with pytest.raises(ValueError, match="page must be >= 1"):
-            await tool.fn(scenario_id=200, start_date="2024-01-01", end_date="2024-12-31", page=0)
+        call_params = client.get.call_args[1]["params"]
+        assert "per_page" not in call_params
+        assert "page" not in call_params
+        assert call_params["start_date"] == "2024-01-01"
+        assert call_params["end_date"] == "2024-12-31"
 
     @pytest.mark.asyncio
     async def test_list_scenario_events_empty(self, mcp_with_tools):

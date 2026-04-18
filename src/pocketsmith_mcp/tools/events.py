@@ -20,8 +20,6 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
     async def list_events(
         start_date: str,
         end_date: str,
-        per_page: int = 1000,
-        page: int = 1,
     ) -> str:
         """
         List budget/calendar events.
@@ -29,26 +27,21 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
         Events represent scheduled transactions for budgeting and
         forecasting, including recurring bills and income.
 
+        NOTE: The PocketSmith API returns a maximum of approximately 30 events
+        per request. Use narrow date ranges (e.g., monthly windows) to ensure
+        complete results.
+
         Args:
             start_date: Start date for events (YYYY-MM-DD)
             end_date: End date for events (YYYY-MM-DD)
-            per_page: Number of results per page (10-1000, default: 1000)
-            page: Page number for pagination (default: 1)
 
         Returns:
             JSON array of events
         """
         try:
-            if not 10 <= per_page <= 1000:
-                raise ValueError("per_page must be between 10 and 1000")
-            if page < 1:
-                raise ValueError("page must be >= 1")
-
             params: dict[str, Any] = {
                 "start_date": start_date,
                 "end_date": end_date,
-                "per_page": per_page,
-                "page": page,
             }
 
             result = await client.get(f"/users/{user_ctx.user_id}/events", params=params)
@@ -202,34 +195,28 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
         scenario_id: int,
         start_date: str,
         end_date: str,
-        per_page: int = 1000,
-        page: int = 1,
     ) -> str:
         """
         List events for a specific scenario.
+
+        NOTE: The PocketSmith API returns a maximum of approximately 30 events
+        per request. Use narrow date ranges (e.g., monthly windows) to ensure
+        complete results.
 
         Args:
             scenario_id: The scenario ID
             start_date: Start date for events (YYYY-MM-DD)
             end_date: End date for events (YYYY-MM-DD)
-            per_page: Number of results per page (10-1000, default: 1000)
-            page: Page number for pagination (default: 1)
 
         Returns:
             JSON array of events within the scenario
         """
         try:
             validate_id(scenario_id, "scenario_id")
-            if not 10 <= per_page <= 1000:
-                raise ValueError("per_page must be between 10 and 1000")
-            if page < 1:
-                raise ValueError("page must be >= 1")
 
             params: dict[str, Any] = {
                 "start_date": start_date,
                 "end_date": end_date,
-                "per_page": per_page,
-                "page": page,
             }
             result = await client.get(f"/scenarios/{scenario_id}/events", params=params)
             return json.dumps(result, indent=2)

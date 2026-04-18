@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from mcp.server.fastmcp import FastMCP
 
+from pocketsmith_mcp.client.api_client import PaginatedResponse
 from pocketsmith_mcp.tools.transactions import register_transaction_tools
 
 
@@ -17,6 +18,7 @@ def mock_client():
     client.post = AsyncMock()
     client.put = AsyncMock()
     client.delete = AsyncMock()
+    client.get_paginated = AsyncMock(return_value=PaginatedResponse(data=[]))
     return client
 
 
@@ -35,13 +37,13 @@ class TestListTransactions:
     async def test_list_transactions_basic(self, mcp_with_tools, sample_transaction):
         """Test basic transaction listing."""
         mcp, client = mcp_with_tools
-        client.get.return_value = [sample_transaction]
+        client.get_paginated.return_value = PaginatedResponse(data=[sample_transaction])
 
         tool = mcp._tool_manager._tools.get("list_transactions")
         result = await tool.fn()
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with(
+        client.get_paginated.assert_called_once_with(
             "/users/42/transactions",
             params={"page": 1, "per_page": 1000}
         )
@@ -52,7 +54,7 @@ class TestListTransactions:
     async def test_list_transactions_with_date_filter(self, mcp_with_tools, sample_transaction):
         """Test transaction listing with date filter."""
         mcp, client = mcp_with_tools
-        client.get.return_value = [sample_transaction]
+        client.get_paginated.return_value = PaginatedResponse(data=[sample_transaction])
 
         tool = mcp._tool_manager._tools.get("list_transactions")
         _result = await tool.fn(
@@ -60,7 +62,7 @@ class TestListTransactions:
             end_date="2024-01-31"
         )
 
-        client.get.assert_called_once_with(
+        client.get_paginated.assert_called_once_with(
             "/users/42/transactions",
             params={
                 "page": 1,
@@ -74,12 +76,12 @@ class TestListTransactions:
     async def test_list_transactions_with_search(self, mcp_with_tools, sample_transaction):
         """Test transaction listing with search query."""
         mcp, client = mcp_with_tools
-        client.get.return_value = [sample_transaction]
+        client.get_paginated.return_value = PaginatedResponse(data=[sample_transaction])
 
         tool = mcp._tool_manager._tools.get("list_transactions")
         await tool.fn(search="coffee")
 
-        client.get.assert_called_once_with(
+        client.get_paginated.assert_called_once_with(
             "/users/42/transactions",
             params={"page": 1, "per_page": 1000, "search": "coffee"}
         )
@@ -88,12 +90,12 @@ class TestListTransactions:
     async def test_list_transactions_uncategorised(self, mcp_with_tools):
         """Test listing uncategorised transactions."""
         mcp, client = mcp_with_tools
-        client.get.return_value = []
+        client.get_paginated.return_value = PaginatedResponse(data=[])
 
         tool = mcp._tool_manager._tools.get("list_transactions")
         await tool.fn(uncategorised=True)
 
-        client.get.assert_called_once_with(
+        client.get_paginated.assert_called_once_with(
             "/users/42/transactions",
             params={"page": 1, "per_page": 1000, "uncategorised": 1}
         )
@@ -102,12 +104,12 @@ class TestListTransactions:
     async def test_list_transactions_needs_review(self, mcp_with_tools):
         """Test listing transactions needing review."""
         mcp, client = mcp_with_tools
-        client.get.return_value = []
+        client.get_paginated.return_value = PaginatedResponse(data=[])
 
         tool = mcp._tool_manager._tools.get("list_transactions")
         await tool.fn(needs_review=True)
 
-        client.get.assert_called_once_with(
+        client.get_paginated.assert_called_once_with(
             "/users/42/transactions",
             params={"page": 1, "per_page": 1000, "needs_review": 1}
         )
@@ -319,13 +321,13 @@ class TestListTransactionsByAccount:
     async def test_basic(self, mcp_with_tools, sample_transaction):
         """Test basic listing by account."""
         mcp, client = mcp_with_tools
-        client.get.return_value = [sample_transaction]
+        client.get_paginated.return_value = PaginatedResponse(data=[sample_transaction])
 
         tool = mcp._tool_manager._tools.get("list_transactions_by_account")
         result = await tool.fn(account_id=10)
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with(
+        client.get_paginated.assert_called_once_with(
             "/accounts/10/transactions", params={"page": 1, "per_page": 1000}
         )
         assert len(result_data) == 1
@@ -334,12 +336,12 @@ class TestListTransactionsByAccount:
     async def test_with_date_filter(self, mcp_with_tools, sample_transaction):
         """Test listing by account with date filter."""
         mcp, client = mcp_with_tools
-        client.get.return_value = [sample_transaction]
+        client.get_paginated.return_value = PaginatedResponse(data=[sample_transaction])
 
         tool = mcp._tool_manager._tools.get("list_transactions_by_account")
         await tool.fn(account_id=10, start_date="2024-01-01", end_date="2024-01-31")
 
-        client.get.assert_called_once_with(
+        client.get_paginated.assert_called_once_with(
             "/accounts/10/transactions",
             params={
                 "page": 1, "per_page": 1000,
@@ -363,13 +365,13 @@ class TestListTransactionsByTransactionAccount:
     async def test_basic(self, mcp_with_tools, sample_transaction):
         """Test basic listing by transaction account."""
         mcp, client = mcp_with_tools
-        client.get.return_value = [sample_transaction]
+        client.get_paginated.return_value = PaginatedResponse(data=[sample_transaction])
 
         tool = mcp._tool_manager._tools.get("list_transactions_by_transaction_account")
         result = await tool.fn(transaction_account_id=20)
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with(
+        client.get_paginated.assert_called_once_with(
             "/transaction_accounts/20/transactions", params={"page": 1, "per_page": 1000}
         )
         assert len(result_data) == 1
@@ -378,12 +380,12 @@ class TestListTransactionsByTransactionAccount:
     async def test_with_search(self, mcp_with_tools, sample_transaction):
         """Test listing by transaction account with search filter."""
         mcp, client = mcp_with_tools
-        client.get.return_value = [sample_transaction]
+        client.get_paginated.return_value = PaginatedResponse(data=[sample_transaction])
 
         tool = mcp._tool_manager._tools.get("list_transactions_by_transaction_account")
         await tool.fn(transaction_account_id=20, search="coffee")
 
-        client.get.assert_called_once_with(
+        client.get_paginated.assert_called_once_with(
             "/transaction_accounts/20/transactions",
             params={"page": 1, "per_page": 1000, "search": "coffee"},
         )
@@ -404,13 +406,13 @@ class TestListTransactionsByCategory:
     async def test_basic(self, mcp_with_tools, sample_transaction):
         """Test basic listing by category."""
         mcp, client = mcp_with_tools
-        client.get.return_value = [sample_transaction]
+        client.get_paginated.return_value = PaginatedResponse(data=[sample_transaction])
 
         tool = mcp._tool_manager._tools.get("list_transactions_by_category")
         result = await tool.fn(category_id=5)
         result_data = json.loads(result)
 
-        client.get.assert_called_once_with(
+        client.get_paginated.assert_called_once_with(
             "/categories/5/transactions", params={"page": 1, "per_page": 1000}
         )
         assert len(result_data) == 1
@@ -419,12 +421,12 @@ class TestListTransactionsByCategory:
     async def test_with_uncategorised_flag(self, mcp_with_tools):
         """Test listing by category with uncategorised flag."""
         mcp, client = mcp_with_tools
-        client.get.return_value = []
+        client.get_paginated.return_value = PaginatedResponse(data=[])
 
         tool = mcp._tool_manager._tools.get("list_transactions_by_category")
         await tool.fn(category_id=5, uncategorised=True)
 
-        client.get.assert_called_once_with(
+        client.get_paginated.assert_called_once_with(
             "/categories/5/transactions",
             params={"page": 1, "per_page": 1000, "uncategorised": 1},
         )
@@ -481,12 +483,12 @@ class TestListTransactionsPerPage:
     async def test_list_transactions_custom_per_page(self, mcp_with_tools, sample_transaction):
         """list_transactions should pass custom per_page value."""
         mcp, client = mcp_with_tools
-        client.get.return_value = [sample_transaction]
+        client.get_paginated.return_value = PaginatedResponse(data=[sample_transaction])
 
         tool = mcp._tool_manager._tools.get("list_transactions")
         await tool.fn(per_page=100)
 
-        client.get.assert_called_once_with(
+        client.get_paginated.assert_called_once_with(
             "/users/42/transactions",
             params={"page": 1, "per_page": 100},
         )
@@ -511,12 +513,12 @@ class TestListTransactionsPerPage:
     async def test_list_by_account_custom_per_page(self, mcp_with_tools, sample_transaction):
         """list_transactions_by_account should pass custom per_page value."""
         mcp, client = mcp_with_tools
-        client.get.return_value = [sample_transaction]
+        client.get_paginated.return_value = PaginatedResponse(data=[sample_transaction])
 
         tool = mcp._tool_manager._tools.get("list_transactions_by_account")
         await tool.fn(account_id=10, per_page=50)
 
-        client.get.assert_called_once_with(
+        client.get_paginated.assert_called_once_with(
             "/accounts/10/transactions",
             params={"page": 1, "per_page": 50},
         )
@@ -543,12 +545,12 @@ class TestListTransactionsPerPage:
     ):
         """list_transactions_by_transaction_account should pass custom per_page value."""
         mcp, client = mcp_with_tools
-        client.get.return_value = [sample_transaction]
+        client.get_paginated.return_value = PaginatedResponse(data=[sample_transaction])
 
         tool = mcp._tool_manager._tools.get("list_transactions_by_transaction_account")
         await tool.fn(transaction_account_id=20, per_page=200)
 
-        client.get.assert_called_once_with(
+        client.get_paginated.assert_called_once_with(
             "/transaction_accounts/20/transactions",
             params={"page": 1, "per_page": 200},
         )
@@ -573,12 +575,12 @@ class TestListTransactionsPerPage:
     async def test_list_by_category_custom_per_page(self, mcp_with_tools, sample_transaction):
         """list_transactions_by_category should pass custom per_page value."""
         mcp, client = mcp_with_tools
-        client.get.return_value = [sample_transaction]
+        client.get_paginated.return_value = PaginatedResponse(data=[sample_transaction])
 
         tool = mcp._tool_manager._tools.get("list_transactions_by_category")
         await tool.fn(category_id=5, per_page=500)
 
-        client.get.assert_called_once_with(
+        client.get_paginated.assert_called_once_with(
             "/categories/5/transactions",
             params={"page": 1, "per_page": 500},
         )
@@ -598,3 +600,162 @@ class TestListTransactionsPerPage:
         tool = mcp._tool_manager._tools.get("list_transactions_by_category")
         with pytest.raises(ValueError, match="per_page must be between 10 and 1000"):
             await tool.fn(category_id=5, per_page=1001)
+
+
+class TestTransactionPaginationMetadata:
+    """Tests for truncation warnings and pagination metadata in transaction list tools."""
+
+    @pytest.mark.asyncio
+    async def test_list_transactions_includes_pagination_metadata_when_has_next(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """list_transactions wraps response with _pagination when has_next=True."""
+        mcp, client = mcp_with_tools
+        client.get_paginated.return_value = PaginatedResponse(
+            data=[sample_transaction] * 1000,
+            total=2000,
+            per_page=1000,
+            page=1,
+            has_next=True,
+        )
+
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        result = await tool.fn()
+        result_data = json.loads(result)
+
+        assert "data" in result_data
+        assert "_pagination" in result_data
+        assert result_data["_pagination"]["total"] == 2000
+        assert result_data["_pagination"]["has_more"] is True
+        assert result_data["_pagination"]["per_page"] == 1000
+        assert result_data["_pagination"]["page"] == 1
+        assert len(result_data["data"]) == 1000
+
+    @pytest.mark.asyncio
+    async def test_list_transactions_plain_array_when_total_known_and_fits_on_one_page(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """list_transactions returns plain array when total is known and fits within per_page."""
+        mcp, client = mcp_with_tools
+        client.get_paginated.return_value = PaginatedResponse(
+            data=[sample_transaction] * 500,
+            total=500,
+            per_page=1000,
+            page=1,
+            has_next=False,
+        )
+
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        result = await tool.fn()
+        result_data = json.loads(result)
+
+        assert isinstance(result_data, list)
+        assert len(result_data) == 500
+
+    @pytest.mark.asyncio
+    async def test_list_transactions_truncation_warning_when_full_page(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """list_transactions adds _warning when exactly per_page results and no total header."""
+        mcp, client = mcp_with_tools
+        client.get_paginated.return_value = PaginatedResponse(
+            data=[sample_transaction] * 1000,
+            total=None,
+            per_page=None,
+            page=1,
+            has_next=False,
+        )
+
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        result = await tool.fn()
+        result_data = json.loads(result)
+
+        assert "data" in result_data
+        assert "_pagination" in result_data
+        assert result_data["_pagination"]["has_more"] is None
+        assert "_warning" in result_data["_pagination"]
+
+    @pytest.mark.asyncio
+    async def test_list_transactions_plain_array_when_partial_page(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """list_transactions returns plain array when fewer than per_page results."""
+        mcp, client = mcp_with_tools
+        client.get_paginated.return_value = PaginatedResponse(
+            data=[sample_transaction, sample_transaction],
+            total=None,
+            per_page=None,
+            page=1,
+            has_next=False,
+        )
+
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        result = await tool.fn()
+        result_data = json.loads(result)
+
+        assert isinstance(result_data, list)
+        assert len(result_data) == 2
+
+    @pytest.mark.asyncio
+    async def test_list_transactions_by_account_pagination_metadata(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """list_transactions_by_account includes _pagination when has_next=True."""
+        mcp, client = mcp_with_tools
+        client.get_paginated.return_value = PaginatedResponse(
+            data=[sample_transaction] * 1000,
+            total=3000,
+            per_page=1000,
+            page=1,
+            has_next=True,
+        )
+
+        tool = mcp._tool_manager._tools.get("list_transactions_by_account")
+        result = await tool.fn(account_id=10)
+        result_data = json.loads(result)
+
+        assert "data" in result_data
+        assert result_data["_pagination"]["total"] == 3000
+        assert result_data["_pagination"]["has_more"] is True
+
+    @pytest.mark.asyncio
+    async def test_list_transactions_by_transaction_account_truncation_warning(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """list_transactions_by_transaction_account adds _warning when exactly per_page results."""
+        mcp, client = mcp_with_tools
+        client.get_paginated.return_value = PaginatedResponse(
+            data=[sample_transaction] * 1000,
+            total=None,
+            per_page=None,
+            page=1,
+            has_next=False,
+        )
+
+        tool = mcp._tool_manager._tools.get("list_transactions_by_transaction_account")
+        result = await tool.fn(transaction_account_id=20)
+        result_data = json.loads(result)
+
+        assert "_pagination" in result_data
+        assert "_warning" in result_data["_pagination"]
+
+    @pytest.mark.asyncio
+    async def test_list_transactions_by_category_plain_array_when_partial(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """list_transactions_by_category returns plain array when results < per_page."""
+        mcp, client = mcp_with_tools
+        client.get_paginated.return_value = PaginatedResponse(
+            data=[sample_transaction] * 5,
+            total=None,
+            per_page=None,
+            page=1,
+            has_next=False,
+        )
+
+        tool = mcp._tool_manager._tools.get("list_transactions_by_category")
+        result = await tool.fn(category_id=5)
+        result_data = json.loads(result)
+
+        assert isinstance(result_data, list)
+        assert len(result_data) == 5
