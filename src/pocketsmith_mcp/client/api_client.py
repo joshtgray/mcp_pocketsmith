@@ -1,5 +1,7 @@
 """Async HTTP client for PocketSmith API with retry, rate limiting, circuit breaker."""
 
+import re
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
@@ -11,6 +13,65 @@ from pocketsmith_mcp.errors import APIError, AuthError, CircuitBreakerOpenError,
 from pocketsmith_mcp.logger import get_logger
 
 logger = get_logger("api_client")
+
+
+@dataclass
+class PaginatedResponse:
+    """HTTP response body paired with pagination metadata from response headers."""
+
+    data: list[Any] | dict[str, Any]
+    total: int | None = None
+    per_page: int | None = None
+    page: int | None = None
+    has_next: bool = False
+    next_url: str | None = None
+
+
+def _parse_pagination_headers(headers: Any) -> dict[str, Any]:
+    """Parse pagination-related HTTP response headers.
+
+    Args:
+        headers: Response headers (dict or httpx Headers).
+
+    Returns:
+        Dict with keys: total, per_page, has_next, next_url.
+    """
+    total: int | None = None
+    per_page: int | None = None
+    has_next = False
+    next_url: str | None = None
+
+    total_str = headers.get("Total")
+    if total_str is not None:
+        try:
+            total = int(total_str)
+        except (ValueError, TypeError):
+            pass
+
+    per_page_str = headers.get("Per-Page")
+    if per_page_str is not None:
+        try:
+            per_page = int(per_page_str)
+        except (ValueError, TypeError):
+            pass
+
+    link_header = headers.get("Link")
+    if link_header:
+        for part in link_header.split(","):
+            part = part.strip()
+            if 'rel="next"' in part or "rel='next'" in part:
+                has_next = True
+                url_match = re.match(r"<([^>]+)>", part)
+                if url_match:
+                    next_url = url_match.group(1)
+                break
+
+    return {
+        "total": total,
+        "per_page": per_page,
+        "has_next": has_next,
+        "next_url": next_url,
+    }
 
 
 class PocketSmithClient:
@@ -72,15 +133,18 @@ class PocketSmithClient:
             reset_timeout_seconds=60,
         )
 
-    async def _request(
+    async def _request_with_headers(
         self,
         method: str,
         path: str,
         params: dict[str, Any] | None = None,
         json_data: dict[str, Any] | None = None,
-    ) -> dict[str, Any] | list[Any]:
+    ) -> tuple[dict[str, Any] | list[Any], Any]:
         """
-        Make an authenticated API request with retry, rate limiting, and circuit breaker.
+        Make an authenticated API request and return body + response headers.
+
+        This is the core implementation. Use _request() for backward-compatible
+        header-discarding behaviour, or get_paginated() for pagination-aware access.
 
         Args:
             method: HTTP method (GET, POST, PUT, DELETE)
@@ -89,7 +153,7 @@ class PocketSmithClient:
             json_data: JSON request body
 
         Returns:
-            Parsed JSON response
+            Tuple of (parsed JSON body, response headers object).
 
         Raises:
             AuthError: Authentication failed (401)
@@ -103,6 +167,9 @@ class PocketSmithClient:
 
         # Rate limiting
         await self._rate_limiter.acquire()
+
+        # Mutable container to capture headers from the inner closure
+        _state: dict[str, Any] = {"headers": None}
 
         async def execute_request() -> dict[str, Any] | list[Any]:
             # Clean up params - remove None values
@@ -154,8 +221,9 @@ class PocketSmithClient:
                     response_body=error_body,
                 )
 
-            # Record success
+            # Record success and capture headers for the caller
             self._circuit_breaker.record_success()
+            _state["headers"] = response.headers
 
             # Handle empty responses
             if response.status_code == 204:
@@ -165,13 +233,45 @@ class PocketSmithClient:
             return result
 
         # Retry with backoff for retryable errors
-        return await retry_with_backoff(
+        body = await retry_with_backoff(
             execute_request,
             max_attempts=self.max_retries,
             base_delay=1.0,
             max_delay=30.0,
             retryable_errors=(httpx.TimeoutException, httpx.NetworkError),
         )
+
+        return body, _state["headers"]
+
+    async def _request(
+        self,
+        method: str,
+        path: str,
+        params: dict[str, Any] | None = None,
+        json_data: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | list[Any]:
+        """
+        Make an authenticated API request with retry, rate limiting, and circuit breaker.
+
+        Args:
+            method: HTTP method (GET, POST, PUT, DELETE)
+            path: API endpoint path
+            params: Query parameters
+            json_data: JSON request body
+
+        Returns:
+            Parsed JSON response
+
+        Raises:
+            AuthError: Authentication failed (401)
+            RateLimitError: Rate limit exceeded (429)
+            APIError: Other API errors
+            CircuitBreakerOpenError: Circuit breaker is open
+        """
+        body, _ = await self._request_with_headers(
+            method, path, params=params, json_data=json_data
+        )
+        return body
 
     async def get(
         self,
@@ -189,6 +289,47 @@ class PocketSmithClient:
             Parsed JSON response
         """
         return await self._request("GET", path, params=params)
+
+    async def get_paginated(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+    ) -> PaginatedResponse:
+        """
+        Make a GET request and return response body with pagination metadata.
+
+        Reads Total, Per-Page, and Link response headers from PocketSmith and
+        returns them alongside the response body. Use this instead of get() when
+        you need to detect truncation or follow pagination.
+
+        Args:
+            path: API endpoint path
+            params: Query parameters (page number extracted from params["page"])
+
+        Returns:
+            PaginatedResponse with data and pagination metadata.
+        """
+        body, headers = await self._request_with_headers("GET", path, params=params)
+
+        pagination = _parse_pagination_headers(headers if headers is not None else {})
+
+        page: int | None = None
+        if params:
+            raw_page = params.get("page")
+            if raw_page is not None:
+                try:
+                    page = int(raw_page)
+                except (ValueError, TypeError):
+                    pass
+
+        return PaginatedResponse(
+            data=body,
+            total=pagination["total"],
+            per_page=pagination["per_page"],
+            page=page,
+            has_next=pagination["has_next"],
+            next_url=pagination["next_url"],
+        )
 
     async def post(
         self,
