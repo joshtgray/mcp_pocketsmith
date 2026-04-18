@@ -19,6 +19,7 @@ def mock_client():
     client.put = AsyncMock()
     client.delete = AsyncMock()
     client.get_paginated = AsyncMock(return_value=PaginatedResponse(data=[]))
+    client.get_all_paginated = AsyncMock(return_value=PaginatedResponse(data=[]))
     return client
 
 
@@ -909,3 +910,195 @@ class TestTransactionPaginationMetadata:
 
         assert isinstance(result_data, list)
         assert len(result_data) == 5
+
+
+class TestAutoPaginate:
+    """Tests for auto_paginate parameter on transaction list tools."""
+
+    @pytest.mark.asyncio
+    async def test_auto_paginate_false_uses_get_paginated_not_get_all_paginated(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """auto_paginate=False (default) calls get_paginated, not get_all_paginated."""
+        mcp, client = mcp_with_tools
+        client.get_paginated.return_value = PaginatedResponse(data=[sample_transaction])
+
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        await tool.fn(auto_paginate=False)
+
+        client.get_paginated.assert_called_once()
+        client.get_all_paginated.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_auto_paginate_default_false_uses_get_paginated(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """Default (auto_paginate omitted) calls get_paginated, not get_all_paginated."""
+        mcp, client = mcp_with_tools
+        client.get_paginated.return_value = PaginatedResponse(data=[sample_transaction])
+
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        await tool.fn()
+
+        client.get_paginated.assert_called_once()
+        client.get_all_paginated.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_auto_paginate_true_single_page_returns_plain_array(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """auto_paginate=True with single page (limit not hit) returns plain array."""
+        mcp, client = mcp_with_tools
+        client.get_all_paginated.return_value = PaginatedResponse(
+            data=[sample_transaction] * 3,
+            has_next=False,
+            pages_fetched=1,
+        )
+
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        result = await tool.fn(auto_paginate=True)
+        result_data = json.loads(result)
+
+        assert isinstance(result_data, list)
+        assert len(result_data) == 3
+        client.get_all_paginated.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_auto_paginate_true_multi_page_returns_merged_plain_array(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """auto_paginate=True with multiple pages (limit not hit) returns merged plain array."""
+        mcp, client = mcp_with_tools
+        client.get_all_paginated.return_value = PaginatedResponse(
+            data=[sample_transaction] * 2500,
+            has_next=False,
+            pages_fetched=3,
+        )
+
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        result = await tool.fn(auto_paginate=True)
+        result_data = json.loads(result)
+
+        assert isinstance(result_data, list)
+        assert len(result_data) == 2500
+
+    @pytest.mark.asyncio
+    async def test_auto_paginate_true_safety_limit_returns_warning(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """auto_paginate=True hitting safety limit returns warning object."""
+        mcp, client = mcp_with_tools
+        client.get_all_paginated.return_value = PaginatedResponse(
+            data=[sample_transaction] * 10000,
+            has_next=True,  # limit was hit, more pages exist
+            pages_fetched=10,
+        )
+
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        result = await tool.fn(auto_paginate=True)
+        result_data = json.loads(result)
+
+        assert "data" in result_data
+        assert "_pagination" in result_data
+        assert result_data["_pagination"]["total_fetched"] == 10000
+        assert result_data["_pagination"]["pages_fetched"] == 10
+        assert "_warning" in result_data["_pagination"]
+        assert "Safety limit" in result_data["_pagination"]["_warning"]
+
+    @pytest.mark.asyncio
+    async def test_auto_paginate_true_passes_params_to_get_all_paginated(
+        self, mcp_with_tools
+    ):
+        """auto_paginate=True forwards filter params to get_all_paginated."""
+        mcp, client = mcp_with_tools
+        client.get_all_paginated.return_value = PaginatedResponse(data=[], has_next=False)
+
+        tool = mcp._tool_manager._tools.get("list_transactions")
+        await tool.fn(
+            auto_paginate=True,
+            start_date="2024-01-01",
+            end_date="2024-12-31",
+            per_page=500,
+        )
+
+        call_params = client.get_all_paginated.call_args[1]["params"]
+        assert call_params["start_date"] == "2024-01-01"
+        assert call_params["end_date"] == "2024-12-31"
+        assert call_params["per_page"] == 500
+
+    @pytest.mark.asyncio
+    async def test_auto_paginate_by_account_single_page_returns_plain_array(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """auto_paginate=True on list_transactions_by_account returns plain array when complete."""
+        mcp, client = mcp_with_tools
+        client.get_all_paginated.return_value = PaginatedResponse(
+            data=[sample_transaction] * 5,
+            has_next=False,
+            pages_fetched=1,
+        )
+
+        tool = mcp._tool_manager._tools.get("list_transactions_by_account")
+        result = await tool.fn(account_id=10, auto_paginate=True)
+        result_data = json.loads(result)
+
+        assert isinstance(result_data, list)
+        assert len(result_data) == 5
+        client.get_all_paginated.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_auto_paginate_by_account_safety_limit_returns_warning(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """auto_paginate=True on list_transactions_by_account returns warning when limit hit."""
+        mcp, client = mcp_with_tools
+        client.get_all_paginated.return_value = PaginatedResponse(
+            data=[sample_transaction] * 10000,
+            has_next=True,
+            pages_fetched=10,
+        )
+
+        tool = mcp._tool_manager._tools.get("list_transactions_by_account")
+        result = await tool.fn(account_id=10, auto_paginate=True)
+        result_data = json.loads(result)
+
+        assert "data" in result_data
+        assert "_warning" in result_data["_pagination"]
+
+    @pytest.mark.asyncio
+    async def test_auto_paginate_by_transaction_account_single_page(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """auto_paginate=True on list_transactions_by_transaction_account returns plain array."""
+        mcp, client = mcp_with_tools
+        client.get_all_paginated.return_value = PaginatedResponse(
+            data=[sample_transaction] * 7,
+            has_next=False,
+            pages_fetched=1,
+        )
+
+        tool = mcp._tool_manager._tools.get("list_transactions_by_transaction_account")
+        result = await tool.fn(transaction_account_id=20, auto_paginate=True)
+        result_data = json.loads(result)
+
+        assert isinstance(result_data, list)
+        assert len(result_data) == 7
+
+    @pytest.mark.asyncio
+    async def test_auto_paginate_by_category_single_page(
+        self, mcp_with_tools, sample_transaction
+    ):
+        """auto_paginate=True on list_transactions_by_category returns plain array."""
+        mcp, client = mcp_with_tools
+        client.get_all_paginated.return_value = PaginatedResponse(
+            data=[sample_transaction] * 4,
+            has_next=False,
+            pages_fetched=1,
+        )
+
+        tool = mcp._tool_manager._tools.get("list_transactions_by_category")
+        result = await tool.fn(category_id=5, auto_paginate=True)
+        result_data = json.loads(result)
+
+        assert isinstance(result_data, list)
+        assert len(result_data) == 4

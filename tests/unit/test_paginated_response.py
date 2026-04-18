@@ -49,6 +49,12 @@ class TestPaginatedResponseDataclass:
 
         assert response.data == {"id": 1, "name": "test"}
 
+    def test_pages_fetched_defaults_to_none(self):
+        """PaginatedResponse.pages_fetched defaults to None."""
+        response = PaginatedResponse(data=[])
+
+        assert response.pages_fetched is None
+
 
 class TestParsePaginationHeaders:
     """Tests for _parse_pagination_headers() module-level helper."""
@@ -307,6 +313,143 @@ class TestGetPaginated:
             result = await client.get_paginated("/users/1/transactions")
 
             assert result.next_url == next_url
+
+
+class TestGetAllPaginated:
+    """Tests for PocketSmithClient.get_all_paginated() method."""
+
+    @pytest.mark.asyncio
+    async def test_single_page_no_next_returns_all_data(self):
+        """Single page (has_next=False) returns data with has_next=False and pages_fetched=1."""
+        client = PocketSmithClient(api_key="test_key")
+        first_page = PaginatedResponse(
+            data=[{"id": 1}, {"id": 2}],
+            total=2,
+            per_page=1000,
+            page=1,
+            has_next=False,
+        )
+        with patch.object(client, "get_paginated", new=AsyncMock(return_value=first_page)):
+            result = await client.get_all_paginated(
+                "/users/1/transactions", params={"page": 1, "per_page": 1000}
+            )
+
+        assert result.data == [{"id": 1}, {"id": 2}]
+        assert result.has_next is False
+        assert result.pages_fetched == 1
+
+    @pytest.mark.asyncio
+    async def test_multiple_pages_merges_all_data(self):
+        """Multiple pages are all fetched and data is merged into a single list."""
+        client = PocketSmithClient(api_key="test_key")
+        page1 = PaginatedResponse(data=[{"id": 1}], total=2, per_page=1, page=1, has_next=True)
+        page2 = PaginatedResponse(data=[{"id": 2}], total=2, per_page=1, page=2, has_next=False)
+
+        mock_get_paginated = AsyncMock(side_effect=[page1, page2])
+        with patch.object(client, "get_paginated", new=mock_get_paginated):
+            result = await client.get_all_paginated(
+                "/users/1/transactions", params={"page": 1, "per_page": 1}
+            )
+
+        assert result.data == [{"id": 1}, {"id": 2}]
+        assert result.has_next is False
+        assert result.pages_fetched == 2
+        assert mock_get_paginated.call_count == 2
+        # Second call should have incremented page to 2
+        second_call_params = mock_get_paginated.call_args_list[1][1]["params"]
+        assert second_call_params["page"] == 2
+
+    @pytest.mark.asyncio
+    async def test_three_pages_merges_all_data(self):
+        """Three pages of data are fetched and merged correctly."""
+        client = PocketSmithClient(api_key="test_key")
+        pages = [
+            PaginatedResponse(data=[{"id": 1}, {"id": 2}], has_next=True),
+            PaginatedResponse(data=[{"id": 3}, {"id": 4}], has_next=True),
+            PaginatedResponse(data=[{"id": 5}], has_next=False),
+        ]
+
+        with patch.object(client, "get_paginated", new=AsyncMock(side_effect=pages)):
+            result = await client.get_all_paginated(
+                "/users/1/transactions", params={"page": 1, "per_page": 2}
+            )
+
+        assert result.data == [{"id": 1}, {"id": 2}, {"id": 3}, {"id": 4}, {"id": 5}]
+        assert result.has_next is False
+        assert result.pages_fetched == 3
+
+    @pytest.mark.asyncio
+    async def test_safety_limit_stops_pagination_and_sets_has_next_true(self):
+        """get_all_paginated stops at max_pages and sets has_next=True when limit is hit."""
+        client = PocketSmithClient(api_key="test_key")
+        # Every page always has a next page (infinite pagination)
+        always_has_next = PaginatedResponse(data=[{"id": 1}], has_next=True)
+
+        with patch.object(client, "get_paginated", new=AsyncMock(return_value=always_has_next)):
+            result = await client.get_all_paginated(
+                "/users/1/transactions", params={"page": 1}, max_pages=3
+            )
+
+        assert result.has_next is True
+        assert result.pages_fetched == 3
+        assert len(result.data) == 3  # 1 item per page * 3 pages
+
+    @pytest.mark.asyncio
+    async def test_safety_limit_default_is_ten_pages(self):
+        """Default max_pages is 10."""
+        client = PocketSmithClient(api_key="test_key")
+        always_has_next = PaginatedResponse(data=[{"id": 1}], has_next=True)
+
+        with patch.object(client, "get_paginated", new=AsyncMock(return_value=always_has_next)):
+            result = await client.get_all_paginated(
+                "/users/1/transactions", params={"page": 1}
+            )
+
+        assert result.pages_fetched == 10
+        assert result.has_next is True
+
+    @pytest.mark.asyncio
+    async def test_preserves_other_params_across_pages(self):
+        """Query params other than page are preserved on subsequent page requests."""
+        client = PocketSmithClient(api_key="test_key")
+        page1 = PaginatedResponse(data=[{"id": 1}], has_next=True)
+        page2 = PaginatedResponse(data=[{"id": 2}], has_next=False)
+
+        mock_get_paginated = AsyncMock(side_effect=[page1, page2])
+        with patch.object(client, "get_paginated", new=mock_get_paginated):
+            await client.get_all_paginated(
+                "/users/1/transactions",
+                params={"page": 1, "per_page": 100, "start_date": "2024-01-01"},
+            )
+
+        second_call_params = mock_get_paginated.call_args_list[1][1]["params"]
+        assert second_call_params["per_page"] == 100
+        assert second_call_params["start_date"] == "2024-01-01"
+        assert second_call_params["page"] == 2
+
+    @pytest.mark.asyncio
+    async def test_returns_paginated_response_instance(self):
+        """get_all_paginated returns a PaginatedResponse instance."""
+        client = PocketSmithClient(api_key="test_key")
+        single_page = PaginatedResponse(data=[], has_next=False)
+
+        with patch.object(client, "get_paginated", new=AsyncMock(return_value=single_page)):
+            result = await client.get_all_paginated("/users/1/transactions")
+
+        assert isinstance(result, PaginatedResponse)
+
+    @pytest.mark.asyncio
+    async def test_empty_result_returns_empty_list(self):
+        """get_all_paginated with empty response returns empty list."""
+        client = PocketSmithClient(api_key="test_key")
+        empty_page = PaginatedResponse(data=[], has_next=False)
+
+        with patch.object(client, "get_paginated", new=AsyncMock(return_value=empty_page)):
+            result = await client.get_all_paginated("/users/1/transactions")
+
+        assert result.data == []
+        assert result.pages_fetched == 1
+        assert result.has_next is False
 
 
 class TestExistingGetUnchanged:

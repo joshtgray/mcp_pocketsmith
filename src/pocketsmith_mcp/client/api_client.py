@@ -3,6 +3,7 @@
 import re
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 
@@ -25,6 +26,7 @@ class PaginatedResponse:
     page: int | None = None
     has_next: bool = False
     next_url: str | None = None
+    pages_fetched: int | None = None
 
 
 def _parse_pagination_headers(headers: Any) -> dict[str, Any]:
@@ -329,6 +331,78 @@ class PocketSmithClient:
             page=page,
             has_next=pagination["has_next"],
             next_url=pagination["next_url"],
+        )
+
+    async def get_all_paginated(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+        max_pages: int = 10,
+    ) -> PaginatedResponse:
+        """
+        Fetch all pages for a paginated endpoint and return merged results.
+
+        Follows pagination by incrementing the ``page`` parameter on each request
+        until either no more pages exist (``has_next=False``) or the safety limit
+        is reached.
+
+        NOTE: Auto-pagination makes multiple API calls back-to-back. With the
+        default 60 req/min rate limit, fetching 10 pages takes up to ~10 seconds
+        as the rate limiter throttles the burst.
+
+        Args:
+            path: API endpoint path
+            params: Query parameters (``page`` will be incremented automatically)
+            max_pages: Maximum number of pages to fetch (default: 10, cap: 10,000
+                transactions at per_page=1000). When the limit is reached,
+                ``has_next=True`` in the returned response.
+
+        Returns:
+            PaginatedResponse with merged data from all pages, ``has_next=True``
+            if the safety limit was hit (more results may exist), and
+            ``pages_fetched`` set to the number of pages actually retrieved.
+        """
+        merged_data: list[Any] = []
+        current_params: dict[str, Any] = dict(params) if params else {}
+        pages_fetched = 0
+        last_resp: PaginatedResponse | None = None
+        limit_reached = False
+
+        while pages_fetched < max_pages:
+            last_resp = await self.get_paginated(path, params=current_params)
+            data = last_resp.data
+            if isinstance(data, list):
+                merged_data.extend(data)
+            pages_fetched += 1
+
+            if not last_resp.has_next:
+                break
+
+            # More pages exist — advance to the next page
+            if last_resp.next_url is not None:
+                parsed = urlparse(last_resp.next_url)
+                qs = parse_qs(parsed.query)
+                next_page_values = qs.get("page")
+                if next_page_values:
+                    current_params = {**current_params, "page": int(next_page_values[0])}
+                else:
+                    current_page = int(current_params.get("page", 1))
+                    current_params = {**current_params, "page": current_page + 1}
+            else:
+                current_page = int(current_params.get("page", 1))
+                current_params = {**current_params, "page": current_page + 1}
+        else:
+            # while condition became False: pages_fetched reached max_pages
+            if last_resp is not None and last_resp.has_next:
+                limit_reached = True
+
+        return PaginatedResponse(
+            data=merged_data,
+            total=last_resp.total if last_resp is not None else None,
+            per_page=last_resp.per_page if last_resp is not None else None,
+            has_next=limit_reached,
+            next_url=None,
+            pages_fetched=pages_fetched,
         )
 
     async def post(

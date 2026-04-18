@@ -78,6 +78,33 @@ def _build_transaction_response(
     return data
 
 
+def _build_auto_paginate_response(resp: PaginatedResponse) -> Any:
+    """
+    Build the tool response for an auto-paginated transaction list result.
+
+    When the safety limit was hit (``resp.has_next=True``), returns a dict with
+    ``data`` and ``_pagination`` metadata including a warning. Otherwise returns
+    a plain list of all transactions.
+    """
+    data = resp.data if isinstance(resp.data, list) else []
+
+    if resp.has_next:
+        # Safety limit was reached — more results may exist
+        return {
+            "data": data,
+            "_pagination": {
+                "total_fetched": len(data),
+                "pages_fetched": resp.pages_fetched,
+                "_warning": (
+                    "Safety limit of 10 pages reached. More results may exist. "
+                    "Use page parameter to fetch additional pages manually."
+                ),
+            },
+        }
+
+    return data
+
+
 def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
     """Register transaction-related MCP tools."""
 
@@ -92,6 +119,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         transaction_type: str | None = None,
         page: int = 1,
         per_page: int = 1000,
+        auto_paginate: bool = False,
     ) -> str:
         """
         List transactions with optional filtering.
@@ -101,6 +129,12 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         clearly complete (fewer than per_page items and no pagination headers),
         returns a plain JSON array.
 
+        When ``auto_paginate=True``, automatically fetches all pages (up to 10)
+        and returns a merged result. If the 10-page safety limit is reached,
+        returns a JSON object with ``data`` and a ``_pagination._warning``. Note
+        that auto-pagination makes multiple API calls; the rate limiter (60
+        req/min) will throttle bursts accordingly.
+
         Args:
             start_date: Filter transactions on/after date (YYYY-MM-DD)
             end_date: Filter transactions on/before date (YYYY-MM-DD)
@@ -109,8 +143,9 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             uncategorised: Only show uncategorised transactions
             needs_review: Only show transactions needing review
             transaction_type: Filter by type ("debit" or "credit")
-            page: Page number for pagination (default: 1)
+            page: Page number for pagination (default: 1, ignored when auto_paginate=True)
             per_page: Number of results per page (10-1000, default: 1000)
+            auto_paginate: Automatically fetch all pages (up to 10) and merge results
 
         Returns:
             JSON array of transactions, or JSON object with data + _pagination
@@ -134,6 +169,12 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
                 params["needs_review"] = 1
             if transaction_type:
                 params["type"] = transaction_type
+
+            if auto_paginate:
+                resp = await client.get_all_paginated(
+                    f"/users/{user_ctx.user_id}/transactions", params=params
+                )
+                return json.dumps(_build_auto_paginate_response(resp), indent=2)
 
             resp = await client.get_paginated(
                 f"/users/{user_ctx.user_id}/transactions", params=params
@@ -354,6 +395,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         transaction_type: str | None = None,
         page: int = 1,
         per_page: int = 1000,
+        auto_paginate: bool = False,
     ) -> str:
         """
         List transactions for a specific account.
@@ -361,6 +403,12 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         When there is a risk of truncation, returns a JSON object with ``data``
         and ``_pagination`` metadata. When results are clearly complete, returns
         a plain JSON array.
+
+        When ``auto_paginate=True``, automatically fetches all pages (up to 10)
+        and returns a merged result. If the 10-page safety limit is reached,
+        returns a JSON object with ``data`` and a ``_pagination._warning``. Note
+        that auto-pagination makes multiple API calls; the rate limiter (60
+        req/min) will throttle bursts accordingly.
 
         Args:
             account_id: The account ID to list transactions for
@@ -371,8 +419,9 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             uncategorised: Only show uncategorised transactions
             needs_review: Only show transactions needing review
             transaction_type: Filter by type ("debit" or "credit")
-            page: Page number for pagination (default: 1)
+            page: Page number for pagination (default: 1, ignored when auto_paginate=True)
             per_page: Number of results per page (10-1000, default: 1000)
+            auto_paginate: Automatically fetch all pages (up to 10) and merge results
 
         Returns:
             JSON array of transactions, or JSON object with data + _pagination
@@ -398,6 +447,12 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             if transaction_type:
                 params["type"] = transaction_type
 
+            if auto_paginate:
+                resp = await client.get_all_paginated(
+                    f"/accounts/{account_id}/transactions", params=params
+                )
+                return json.dumps(_build_auto_paginate_response(resp), indent=2)
+
             resp = await client.get_paginated(f"/accounts/{account_id}/transactions", params=params)
             return json.dumps(_build_transaction_response(resp, per_page, page), indent=2)
         except Exception as e:
@@ -416,6 +471,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         transaction_type: str | None = None,
         page: int = 1,
         per_page: int = 1000,
+        auto_paginate: bool = False,
     ) -> str:
         """
         List transactions for a specific transaction account.
@@ -423,6 +479,10 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         When there is a risk of truncation, returns a JSON object with ``data``
         and ``_pagination`` metadata. When results are clearly complete, returns
         a plain JSON array.
+
+        When ``auto_paginate=True``, automatically fetches all pages (up to 10)
+        and returns a merged result. If the 10-page safety limit is reached,
+        returns a JSON object with ``data`` and a ``_pagination._warning``.
 
         Args:
             transaction_account_id: The transaction account ID to list transactions for
@@ -433,8 +493,9 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             uncategorised: Only show uncategorised transactions
             needs_review: Only show transactions needing review
             transaction_type: Filter by type ("debit" or "credit")
-            page: Page number for pagination (default: 1)
+            page: Page number for pagination (default: 1, ignored when auto_paginate=True)
             per_page: Number of results per page (10-1000, default: 1000)
+            auto_paginate: Automatically fetch all pages (up to 10) and merge results
 
         Returns:
             JSON array of transactions, or JSON object with data + _pagination
@@ -460,6 +521,13 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             if transaction_type:
                 params["type"] = transaction_type
 
+            if auto_paginate:
+                resp = await client.get_all_paginated(
+                    f"/transaction_accounts/{transaction_account_id}/transactions",
+                    params=params,
+                )
+                return json.dumps(_build_auto_paginate_response(resp), indent=2)
+
             resp = await client.get_paginated(
                 f"/transaction_accounts/{transaction_account_id}/transactions",
                 params=params,
@@ -483,6 +551,7 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         transaction_type: str | None = None,
         page: int = 1,
         per_page: int = 1000,
+        auto_paginate: bool = False,
     ) -> str:
         """
         List transactions for a specific category.
@@ -495,6 +564,10 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
         and ``_pagination`` metadata. When results are clearly complete, returns
         a plain JSON array.
 
+        When ``auto_paginate=True``, automatically fetches all pages (up to 10)
+        and returns a merged result. If the 10-page safety limit is reached,
+        returns a JSON object with ``data`` and a ``_pagination._warning``.
+
         Args:
             category_id: The category ID to list transactions for
             start_date: Filter transactions on/after date (YYYY-MM-DD)
@@ -504,8 +577,9 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             uncategorised: Only show uncategorised transactions
             needs_review: Only show transactions needing review
             transaction_type: Filter by type ("debit" or "credit")
-            page: Page number for pagination (default: 1)
+            page: Page number for pagination (default: 1, ignored when auto_paginate=True)
             per_page: Number of results per page (10-1000, default: 1000)
+            auto_paginate: Automatically fetch all pages (up to 10) and merge results
 
         Returns:
             JSON array of transactions, or JSON object with data + _pagination
@@ -530,6 +604,12 @@ def register_transaction_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
                 params["needs_review"] = 1
             if transaction_type:
                 params["type"] = transaction_type
+
+            if auto_paginate:
+                resp = await client.get_all_paginated(
+                    f"/categories/{category_id}/transactions", params=params
+                )
+                return json.dumps(_build_auto_paginate_response(resp), indent=2)
 
             resp = await client.get_paginated(
                 f"/categories/{category_id}/transactions", params=params
