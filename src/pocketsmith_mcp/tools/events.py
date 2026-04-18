@@ -1,6 +1,8 @@
 """Event management MCP tools."""
 
+import calendar
 import json
+from datetime import date, timedelta
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
@@ -12,6 +14,46 @@ from pocketsmith_mcp.user_context import UserContext
 
 logger = get_logger("tools.events")
 
+_MAX_WINDOWS = 24
+
+
+def _split_date_range(start_date_str: str, end_date_str: str) -> list[tuple[str, str]]:
+    """Split a date range into calendar-month windows.
+
+    Returns a list of (start, end) ISO-date string tuples. If the range is
+    ≤31 days, a single window covering the full range is returned. Otherwise
+    the range is split on calendar-month boundaries.
+
+    Raises ValueError if the range requires more than _MAX_WINDOWS windows.
+    """
+    start = date.fromisoformat(start_date_str)
+    end = date.fromisoformat(end_date_str)
+
+    if (end - start).days < 31:
+        return [(start_date_str, end_date_str)]
+
+    windows: list[tuple[str, str]] = []
+    current_start = start
+
+    while current_start <= end:
+        last_day = calendar.monthrange(current_start.year, current_start.month)[1]
+        window_end = date(current_start.year, current_start.month, last_day)
+
+        if window_end > end:
+            window_end = end
+
+        windows.append((current_start.isoformat(), window_end.isoformat()))
+
+        if len(windows) > _MAX_WINDOWS:
+            raise ValueError(
+                f"Date range exceeds the safety limit of {_MAX_WINDOWS} monthly "
+                f"windows (2 years). Please narrow the date range."
+            )
+
+        current_start = window_end + timedelta(days=1)
+
+    return windows
+
 
 def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
     """Register event-related MCP tools."""
@@ -20,6 +62,7 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
     async def list_events(
         start_date: str,
         end_date: str,
+        auto_window: bool = True,
     ) -> str:
         """
         List budget/calendar events.
@@ -28,24 +71,48 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
         forecasting, including recurring bills and income.
 
         NOTE: The PocketSmith API returns a maximum of approximately 30 events
-        per request. Use narrow date ranges (e.g., monthly windows) to ensure
-        complete results.
+        per request. By default, date ranges longer than 31 days are
+        automatically split into monthly windows and results are merged and
+        deduplicated. Maximum 24 windows (2-year limit).
 
         Args:
             start_date: Start date for events (YYYY-MM-DD)
             end_date: End date for events (YYYY-MM-DD)
+            auto_window: If True (default), splits ranges >31 days into monthly
+                windows and merges deduplicated results. If False, makes a
+                single request (results capped at ~30 events by the API).
 
         Returns:
             JSON array of events
         """
         try:
-            params: dict[str, Any] = {
-                "start_date": start_date,
-                "end_date": end_date,
-            }
+            windows = (
+                _split_date_range(start_date, end_date)
+                if auto_window
+                else [(start_date, end_date)]
+            )
 
-            result = await client.get(f"/users/{user_ctx.user_id}/events", params=params)
-            return json.dumps(result, indent=2)
+            all_events: list[dict[str, Any]] = []
+            seen_ids: set[int] = set()
+
+            for win_start, win_end in windows:
+                params: dict[str, Any] = {
+                    "start_date": win_start,
+                    "end_date": win_end,
+                }
+                result = await client.get(
+                    f"/users/{user_ctx.user_id}/events", params=params
+                )
+                if isinstance(result, list):
+                    for event in result:
+                        event_id = event.get("id")
+                        if event_id is not None and event_id in seen_ids:
+                            continue
+                        if event_id is not None:
+                            seen_ids.add(event_id)
+                        all_events.append(event)
+
+            return json.dumps(all_events, indent=2)
         except Exception as e:
             logger.error(f"list_events failed: {e}")
             raise ValueError(f"Failed to list events: {e}")
@@ -195,18 +262,23 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
         scenario_id: int,
         start_date: str,
         end_date: str,
+        auto_window: bool = True,
     ) -> str:
         """
         List events for a specific scenario.
 
         NOTE: The PocketSmith API returns a maximum of approximately 30 events
-        per request. Use narrow date ranges (e.g., monthly windows) to ensure
-        complete results.
+        per request. By default, date ranges longer than 31 days are
+        automatically split into monthly windows and results are merged and
+        deduplicated. Maximum 24 windows (2-year limit).
 
         Args:
             scenario_id: The scenario ID
             start_date: Start date for events (YYYY-MM-DD)
             end_date: End date for events (YYYY-MM-DD)
+            auto_window: If True (default), splits ranges >31 days into monthly
+                windows and merges deduplicated results. If False, makes a
+                single request (results capped at ~30 events by the API).
 
         Returns:
             JSON array of events within the scenario
@@ -214,12 +286,33 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
         try:
             validate_id(scenario_id, "scenario_id")
 
-            params: dict[str, Any] = {
-                "start_date": start_date,
-                "end_date": end_date,
-            }
-            result = await client.get(f"/scenarios/{scenario_id}/events", params=params)
-            return json.dumps(result, indent=2)
+            windows = (
+                _split_date_range(start_date, end_date)
+                if auto_window
+                else [(start_date, end_date)]
+            )
+
+            all_events: list[dict[str, Any]] = []
+            seen_ids: set[int] = set()
+
+            for win_start, win_end in windows:
+                params: dict[str, Any] = {
+                    "start_date": win_start,
+                    "end_date": win_end,
+                }
+                result = await client.get(
+                    f"/scenarios/{scenario_id}/events", params=params
+                )
+                if isinstance(result, list):
+                    for event in result:
+                        event_id = event.get("id")
+                        if event_id is not None and event_id in seen_ids:
+                            continue
+                        if event_id is not None:
+                            seen_ids.add(event_id)
+                        all_events.append(event)
+
+            return json.dumps(all_events, indent=2)
         except Exception as e:
             logger.error(f"list_scenario_events failed: {e}")
             raise ValueError(f"Failed to list events for scenario {scenario_id}: {e}")
