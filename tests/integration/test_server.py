@@ -63,7 +63,7 @@ class TestServerTools:
     """Tests for server tool registration."""
 
     def test_all_tools_registered(self):
-        """Test that all 44 tools are registered."""
+        """Test that all 58 tools are registered."""
         with patch("pocketsmith_mcp.server.get_config") as mock_config:
             mock_config.return_value = _mock_config()
 
@@ -75,71 +75,85 @@ class TestServerTools:
 
             # Verify core tools exist
             expected_tools = [
-                # User tools
+                # User tools (3)
                 "get_current_user",
                 "get_user",
                 "update_user",
-                # Account tools
+                # Account tools (7)
                 "list_accounts",
                 "get_account",
+                "create_account",
                 "update_account",
                 "delete_account",
-                # Transaction account tools
+                "list_accounts_by_institution",
+                "update_account_display_order",
+                # Transaction account tools (3)
                 "list_transaction_accounts",
                 "get_transaction_account",
                 "update_transaction_account",
-                # Transaction tools
+                # Transaction tools (8)
                 "list_transactions",
                 "get_transaction",
                 "create_transaction",
                 "update_transaction",
                 "delete_transaction",
-                # Category tools
+                "list_transactions_by_account",
+                "list_transactions_by_transaction_account",
+                "list_transactions_by_category",
+                # Category tools (5)
                 "list_categories",
                 "get_category",
                 "create_category",
                 "update_category",
                 "delete_category",
-                # Budgeting tools
+                # Category rule tools (2)
+                "list_category_rules",
+                "create_category_rule",
+                # Budgeting tools (4)
                 "get_budget",
                 "get_budget_summary",
                 "get_trend_analysis",
                 "clear_forecast_cache",
-                # Institution tools
+                # Institution tools (5)
                 "list_institutions",
                 "get_institution",
                 "create_institution",
                 "update_institution",
                 "delete_institution",
-                # Event tools
+                # Event tools (6)
                 "list_events",
                 "get_event",
                 "create_event",
                 "update_event",
                 "delete_event",
-                # Attachment tools
+                "list_scenario_events",
+                # Attachment tools (8)
                 "list_attachments",
                 "get_attachment",
                 "create_attachment",
                 "update_attachment",
                 "delete_attachment",
-                # Label tools
+                "list_transaction_attachments",
+                "assign_attachment_to_transaction",
+                "unassign_attachment_from_transaction",
+                # Label tools (2)
                 "list_labels",
                 "list_saved_searches",
-                # Utility tools
+                # Utility tools (3)
                 "list_currencies",
                 "list_time_zones",
-                # Bulk tools
+                "get_currency",
+                # Bulk tools (1)
                 "bulk_update_transactions",
-                # Scenario tools
+                # Scenario tools (1)
                 "list_scenarios",
             ]
 
             for tool_name in expected_tools:
                 assert tool_name in tool_names, f"Tool '{tool_name}' not registered"
 
-            # Verify total count (45 tools)
-            assert len(tool_names) == 45, f"Expected 45 tools, got {len(tool_names)}"
+            # Verify total count (58 tools)
+            assert len(tool_names) == 58, f"Expected 58 tools, got {len(tool_names)}"
 
 
 class TestServerConfiguration:

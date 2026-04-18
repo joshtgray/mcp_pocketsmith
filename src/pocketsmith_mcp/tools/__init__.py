@@ -40,7 +40,7 @@ def register_all_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserCo
     register_event_tools(mcp, client, user_ctx)           # 6 tools
     register_attachment_tools(mcp, client, user_ctx)      # 8 tools
     register_label_tools(mcp, client, user_ctx)           # 2 tools
-    register_utility_tools(mcp, client)                   # 3 tools (no user_id needed)
+    register_utility_tools(mcp, client)                   # 3 tools (no user_ctx needed)
     register_bulk_transaction_tools(mcp, client)          # 1 tool
     register_scenario_tools(mcp, client, user_ctx)        # 1 tool
 
